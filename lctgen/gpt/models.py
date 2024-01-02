@@ -38,8 +38,8 @@ class CodexModel(BasicLLM):
     if self.codex_cfg.MODEL == 'debug':
       resp = self.sys_prompt
     elif self.codex_cfg.MODEL in ("gpt-4", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"):
-      responses = openai.ChatCompletion.create(
-              model=self.codex_cfg.MODEL,
+      responses = openai.chat.completions.create(
+              model="text-embedding-ada-002",
               messages=[
                   {"role": "system", "content": self.sys_prompt},
                   {"role": "user", "content": extended_prompt}
@@ -49,8 +49,9 @@ class CodexModel(BasicLLM):
               top_p = 1.,
               frequency_penalty=0,
               presence_penalty=0,
+              seed = 1
               )
-      resp = responses['choices'][0]['message']['content']
+      resp = responses.choices[0].message.content
     else:
       response = openai.Completion.create(
           model="code-davinci-002",

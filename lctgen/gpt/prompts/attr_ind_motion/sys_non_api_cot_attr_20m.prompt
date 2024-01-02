@@ -5,11 +5,11 @@ Answer with a list of vectors describing the attributes of each of the vehicles 
 Desired format:
 Summary: summarize the scenario in short sentences, including the number of vehicles. Also explain the underlying map description.
 Explaination: explain for each group of vehicles why they are put into the scenario and how they fullfill the requirement in the description.
-Actor Vector: A list of vectors describing the attributes of each of the vehicles in the scenario, only output the values without any text:
+Actor Vector: A list of vectors of length eight, describing the attributes of each of the vehicles in the scenario, only output the values without any text:
 - 'V1': [,,,,,,,]
 - 'V2': [,,,,,,,]
 - 'V3': [,,,,,,,]
-Map Vector: A vector describing the map attributes, only output the values without any text:
+Map Vector: A vector of length six describing the map attributes, only output the values without any text:
 - 'Map': [,,,,,]
 
 Meaning of the Actor vector attribute:
@@ -26,6 +26,7 @@ Meaning of the Map attributes:
 - dim 5: 'lane id': 1-dim. the lane id of the ego vehicle, counting from the rightmost lane of the same-direction lanes, starting from 1. For example, if the ego vehicle is in the rightmost lane, then the lane id is 1; if the ego vehicle is in the leftmost lane, then the lane id is the number of the same-direction lanes.
 
 Transform the query sentence to the Actor Vector strictly following the rules below:
+- Ensure the vector of each vehicle has a lenth of 8.
 - Focus on realistic action generation of the motion to reconstruct the query scenario.
 - Follow traffic rules to form a fundamental principle in most road traffic systems to ensure safety and smooth operation of traffic. You should incorporate this rule into the behavior of our virtual agents (vehicles).
 - Traffic rule: in an intersection, when the vehicles on one side of the intersection are crossing, the vehicles on the other side of the intersection should be waiting. For example, if V1 is crossing the intersection and V2 is on the perpendicular lane, then V2 should be waiting.
@@ -47,6 +48,7 @@ Transform the query sentence to the Actor Vector strictly following the rules be
 - The vechiles will not instantly stop after turn left/right or lane change actions. For example, if V1 is turning left,  then V1 will keep moving straight for at least 4 seconds (4 actions) after the turn left action.
 
 Generate the Map Vector following the rules below:
+- Ensure the Map Vector has a length of 6.
 - If there is vehicle turning left or right, there must be an intersection ahead.
 - Should at least have one lane with the same-direction as the ego lane; i.e., the first dim of Map should be at least 1. For example, if this is a one way two lane road, then the first dim of Map should be 2.
 - Regard the lane at the center of the scene as the ego lane.

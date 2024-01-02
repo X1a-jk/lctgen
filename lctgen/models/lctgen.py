@@ -137,6 +137,7 @@ class LCTGen(BaseModel):
   
   def forward(self, batch, mode):
     result = {}
+    print(batch.keys())
     result['text_decode_output'] = self.trafficgen_model(batch)
     
     batch = self._format_target_for_detr(batch)

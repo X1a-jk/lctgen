@@ -166,7 +166,10 @@ def transform_traj_output_to_waymo_agent(output, fps=10):
   return pred_agents
 
 def draw_frame(t, output_scene, pred_agents, data):
-  frame = Image.fromarray(draw_seq(output_scene['center'], pred_agents[t], traj=output_scene['traj'], other=data['rest'][0], edge=data['bound'][0],save_np=True))
+  img = draw_seq(output_scene['center'].cpu(), pred_agents[t], traj=output_scene['traj'], \
+          other=data['rest'][0].cpu(), edge=data['bound'][0].cpu(),save_np=True)
+#  img = img.numpy()
+  frame = Image.fromarray(img)
   return frame
 
 def visualize_output_seq(data, output, fps=10, pool_num=16):
@@ -174,9 +177,14 @@ def visualize_output_seq(data, output, fps=10, pool_num=16):
   T = len(pred_agents)
 
   image_list = []
+  '''
   with multiprocessing.Pool(pool_num) as pool:
     draw_frame_partial = partial(draw_frame, output_scene=output, pred_agents=pred_agents, data=data)
     for frame in tqdm.tqdm(pool.imap(draw_frame_partial, range(T)), total=T):
       image_list.append(frame)
-
+  '''
+  for i in range(T):
+      device = "cpu"
+      frame = draw_frame(i, output_scene=output, pred_agents=pred_agents, data=data)
+      image_list.append(frame)
   return image_list

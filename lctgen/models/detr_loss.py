@@ -158,7 +158,6 @@ class SetCriterion(nn.Module):
                     min_index = torch.argmin(dists, dim=-1)
 
                     k_mask = mask.unsqueeze(1).repeat(1, K, 1, 1)
-
                     pos_loss = MSE(tgt_gt, src)
                     pos_loss[~k_mask] *= 0
                     # pos_loss = pos_loss.mean(-1).mean(-1)
@@ -167,7 +166,6 @@ class SetCriterion(nn.Module):
                     pos_loss = pos_loss.sum(-1).sum(-1) / (k_mask.sum(-1).sum(-1) + 1e-6)
                     
                     pos_loss = torch.gather(pos_loss, dim=1, index=min_index.unsqueeze(-1)).mean()
-
                     cls_loss = CLS(src_prob, min_index) * self.motion_cfg.CLS_WEIGHT
 
                     motion_loss = pos_loss + cls_loss
@@ -361,6 +359,7 @@ class SetCriterion(nn.Module):
                       The expected keys in each dict depends on the losses applied, see each loss' doc
         """
         # Retrieve the matching between the outputs of the last layer and the targets
+        print(outputs['text_decode_output'].keys())
         ae_modes = self.cfg.LOSS.DETR.AE_MODES
         if self.cfg.LOSS.DETR.TEXT_AE and 'text' not in ae_modes:
             ae_modes.append('text')

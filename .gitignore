@@ -8,3 +8,6 @@
 **.vscode
 **.zip**
 **npy**
+*.log
+checkpoints/
+data/

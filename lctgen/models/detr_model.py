@@ -111,7 +111,6 @@ class DETRAgentQuery(nn.Module):
         result['motion_prob'] = motion_prob
 
         motion_pred = self.motion_head(agent_feat).view(b, -1, self.m_K, pred_len, 2)
-        
         if self.motion_cfg.CUMSUM:
             motion_pred = motion_pred.cumsum(dim=-2)
         
@@ -200,7 +199,6 @@ class DETRAgentQuery(nn.Module):
         attr_query_input = data['text']
         attr_dim = attr_query_input.shape[-1]
         attr_query_encoding = pos2posemb(attr_query_input, pos_enc_dim//attr_dim)
-
         attr_query_encoding = self.query_embedding_layer(attr_query_encoding)
         learnable_query_embedding = self.actor_query.repeat(b, 1, 1)
         query_encoding = learnable_query_embedding + attr_query_encoding

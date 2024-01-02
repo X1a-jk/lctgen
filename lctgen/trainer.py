@@ -80,7 +80,7 @@ class BaseTrainer():
             # batch_size should be the effective batch size regardless of the number of GPUs
             batch_size = config.BATCH_SIZE
             if len(self.config.GPU) > 1:
-                batch_size = int(batch_size / len(self.config.GPU))
+                batch_size = max(1, int(batch_size / len(self.config.GPU)))
             if self.config.DEBUG:
                 self.data_loaders[mode] = DataLoader(dataset, batch_size=batch_size, shuffle=False, pin_memory = False,
                 drop_last=config.DROP_LAST, num_workers=1, collate_fn=collate_fn)

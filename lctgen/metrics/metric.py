@@ -129,7 +129,8 @@ class MMD_All(Metric):
 @registry.register_metric(name='traj_match')
 class TrajMatch(Metric):
   def __init__(self, cfg):
-    super().__init__(full_state_update=True)
+    # super().__init__(full_state_update=True)
+    super().__init__()
     self.traj_metrics = {}
     self.traj_metrics['ade'] = MeanMetric()
     self.traj_metrics['fde'] = MeanMetric()

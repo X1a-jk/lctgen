@@ -11,3 +11,4 @@
 *.log
 checkpoints/
 data/
+results/

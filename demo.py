@@ -82,10 +82,15 @@ llm_model = registry.get_llm('codex')(llm_cfg)
 
 import openai
 
+'''
 openai.api_key = "EMPTY"
 openai.base_url = "http://localhost:8000/v1/"
+'''
 
-query = 'The scene has multiple lanes. Two cars are driving on the center lane. Ego car is driving slowly, and the other car accelerates to overtake ego car.'  # @param {type:"string"}
+openai.api_key = "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"
+openai.base_url = "https://api.openai-proxy.com/v1/"
+
+query = 'Two cars are driving on the same lane with the same direction. Ego car is driving slowly, and the other car accelerates to overtake ego car.'  # @param {type:"string"}
 
 print("query: ")
 print(query)
@@ -100,5 +105,5 @@ cfg = get_config(cfg_file)
 
 img_list = gen_scenario_from_gpt_text(llm_result, cfg, model, map_vecs, map_ids)
 print("img_list generated")
-img_list[0].save("demo_ot.gif", save_all=True, append_images=img_list[1:])
+img_list[0].save("demo_ot_2.gif", save_all=True, append_images=img_list[1:])
 

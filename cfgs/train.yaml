@@ -22,12 +22,14 @@ DATASET:
     - 'direction'
     - 'speed'
     - 'action'
+    - 'full_traj'
     CLASS:
     - 'pos'
     - 'distance'
     - 'direction'
     - 'speed'
     - 'action'
+      # - 'full_traj'
     NEGATIVE_SAMPLE_NUM: 10
     COUNT_BASE: 1
     DISTANCE_BASE: 20
@@ -104,7 +106,7 @@ MODEL:
         ATTR_GMM_K: 5
   
       ATTR_QUERY:
-        POS_ENCODING_DIM: 256
+        POS_ENCODING_DIM: 252
 
 LOAD_CHECKPOINT_MODEL: false
 LOAD_CHECKPOINT_TRAINER: false

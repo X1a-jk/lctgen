@@ -133,7 +133,7 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
         lane_color = 'white'
         alpha = 0.2
         linewidth = 6
-    ax.axis('off')
+    ax.axis('on')
 
     for j in range(center.shape[0]):
         traf_state = center[j, -1]
@@ -200,6 +200,9 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
     plt.autoscale()
     plt.xlim([-60, 60])
     plt.ylim([-60, 60])
+    plt.xticks(np.arange(-60, 60, 1))
+    plt.yticks(np.arange(-60, 60, 1))
+
     
     if save:
         fig.savefig(path, dpi=100, bbox_inches='tight', pad_inches=0)

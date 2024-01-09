@@ -359,7 +359,6 @@ class SetCriterion(nn.Module):
                       The expected keys in each dict depends on the losses applied, see each loss' doc
         """
         # Retrieve the matching between the outputs of the last layer and the targets
-        print(outputs['text_decode_output'].keys())
         ae_modes = self.cfg.LOSS.DETR.AE_MODES
         if self.cfg.LOSS.DETR.TEXT_AE and 'text' not in ae_modes:
             ae_modes.append('text')

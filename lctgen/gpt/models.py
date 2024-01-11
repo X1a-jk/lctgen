@@ -39,8 +39,8 @@ class CodexModel(BasicLLM):
       resp = self.sys_prompt
     elif self.codex_cfg.MODEL in ("gpt-4", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"):
       responses = openai.chat.completions.create(
-              # model="gpt-4",
-              model='text-embedding-ada-002',
+              model="gpt-4",
+              # model='text-embedding-ada-002',
               messages=[
                   {"role": "system", "content": self.sys_prompt},
                   {"role": "user", "content": extended_prompt}

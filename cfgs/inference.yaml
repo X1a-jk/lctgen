@@ -22,6 +22,7 @@ DATASET:
     - 'direction'
     - 'speed'
     - 'action'
+    - 'full_traj'
     CLASS:
     - 'pos'
     - 'distance'
@@ -43,7 +44,7 @@ EXPERIMENT_DIR: lctgen
 EXPERIMENT_NAME: inference
 
 LOAD_CHECKPOINT_MODEL: true
-LOAD_CHECKPOINT_PATH: 'checkpoints/example.ckpt'
+LOAD_CHECKPOINT_PATH: 'results/lctgen/train/lctgen_attr_ind_motion/54af8myp/checkpoints/epoch=99-step=107391.ckpt'
 LOAD_CHECKPOINT_TRAINER: true
 
 LOSS:
@@ -108,7 +109,7 @@ MODEL:
         ATTR_GMM_K: 5
   
       ATTR_QUERY:
-        POS_ENCODING_DIM: 256
+        POS_ENCODING_DIM: 252
 
     NORMALIZE: false
     PRETRAINED: false

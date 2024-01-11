@@ -1,0 +1,8 @@
+EXPERIMENT_NAME: 'new representation'
+
+LLM:
+  CODEX:
+    MODEL: 'gpt-4'
+    PROMPT_FILE: 'attr_ind_motion/que_new_rep.prompt'
+    SYS_PROMPT_FILE: 'attr_ind_motion/sye_new_rep.prompt'
+    TEMPERATURE: 0.1

@@ -19,7 +19,7 @@ def vis_decode(batch, ae_output):
     return img
 
 
-cfg_file = './cfgs/demo_inference.yaml'
+cfg_file = './cfgs/inference.yaml'
 cfg = get_config(cfg_file)
 
 model_cls = registry.get_model(cfg.MODEL.TYPE)
@@ -89,11 +89,14 @@ def gen_scenario_from_gpt_text(llm_text, cfg, model, map_vecs, map_ids):
 
     # inference with LLM-output Structured Representation
     batch['text'] = torch.tensor(agent_vector, dtype=batch['text'].dtype, device=model.device)[None, ...]
+    b, d, _ = batch['text'].shape
+    padding = -1 * torch.ones((b, d, 1), device=model.device)
+    batch['text'] = torch.cat((batch['text'],padding), dim=-1)
     batch['agent_mask'] = torch.tensor([1]*agent_num + [0]*(MAX_AGENT_NUM - agent_num), \
             dtype=batch['agent_mask'].dtype, device=model.device)[None, ...]
     # batch['device'] = model.device    
-    print(batch['text'][batch['agent_mask']])
-    print(batch['traj'].shape)
+    # print(batch['text'][batch['agent_mask']])
+    # print(batch['traj'].shape)
 
     for k in batch.keys():
         if type(batch[k])==torch.Tensor:
@@ -111,37 +114,34 @@ map_vecs, map_ids = load_all_map_vectors(map_data_file)
 from lctgen.core.registry import registry
 from lctgen.config.default import get_config
 
-llm_cfg = get_config('./lctgen/gpt/cfgs/attr_ind_motion/non_api_cot_attr_20m.yaml')
+llm_cfg = get_config('./lctgen/gpt/cfgs/attr_ind_motion/new.yaml')
 llm_model = registry.get_llm('codex')(llm_cfg)
 # print(llm_model.device)
 
 import openai
 
-
+'''
 openai.api_key = "EMPTY"
 openai.base_url = "http://localhost:8000/v1/"
-
 '''
-openai.api_key = "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"
+
+openai.api_key = "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"
 openai.base_url = "https://api.openai-proxy.com/v1/"
-'''
 
-query = 'Only one car on the scene, and the car makes a left lane change at the intersection'  # @param {type:"string"}
+
+query = 'Only one car on the scene, and the car makes a left lane change at the intersection while accelerating'  # @param {type:"string"}
 
 print("query: ")
 print(query)
 
-'''
+
 llm_result = llm_model.forward(query)
 
 print('LLM inference result:')
 print(llm_result)
+
+
 '''
-cfg_file = 'cfgs/inference.yaml'
-cfg = get_config(cfg_file)
-
-
-
 for example_idx in range(len(dataset.data_list)):
     base_path = "./traj2act_new/"
     if not os.path.isdir(base_path+str(example_idx)):
@@ -154,10 +154,10 @@ for example_idx in range(len(dataset.data_list)):
     
     traj2act(loader, example_idx)
     #break
-
 '''
+
 img_list = gen_scenario_from_gpt_text(llm_result, cfg, model, map_vecs, map_ids)
 
 print("img_list generated")
-img_list[0].save("demo_lc.gif", save_all=True, append_images=img_list[1:])
-'''
+img_list[0].save("demo_llc.gif", save_all=True, append_images=img_list[1:])
+

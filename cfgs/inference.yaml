@@ -11,9 +11,9 @@ DATASET:
     RANDOM_MASK_RATE: 0.1
   TRAJ_TYPE: xy_theta_relative
   DATA_LIST:
-    TEST: val.txt
-    VAL: val.txt
-    TRAIN: train.txt
+    TEST: 0.txt
+    VAL: 0.txt
+    TRAIN: 0.txt
   TEXT:
     TYPE: attr_ind
     ALL_CLASSES:

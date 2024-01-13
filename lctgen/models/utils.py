@@ -51,7 +51,7 @@ def visualize_map(data):
   return draw_seq_map(center, other=rest, edge=bound, save_np=True)
 
 
-def visualize_input_seq(data, agents = None, traj=None, sort_agent=True, clip_size=True):
+def visualize_input_seq(data, agents = None, traj=None, sort_agent=True, clip_size=True, save=False, filename=None):
   MIN_LENGTH = 4.0
   MIN_WIDTH = 1.5
 
@@ -77,7 +77,7 @@ def visualize_input_seq(data, agents = None, traj=None, sort_agent=True, clip_si
     for i in range(len(agents)):
       agents[i].length_width = np.clip(agents[i].length_width, [MIN_LENGTH, MIN_WIDTH], [10.0, 5.0])
 
-  return draw_seq(center, agents, traj=traj, other=rest, edge=bound, save_np=True)
+  return draw_seq(center, agents, traj=traj, other=rest, edge=bound, save_np=True, save=save, path=filename)
 
 def visualize_query_heatmaps(data, output):
   MAX_QUERY_NUM = 12

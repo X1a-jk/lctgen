@@ -125,11 +125,11 @@ openai.api_key = "EMPTY"
 openai.base_url = "http://localhost:8000/v1/"
 '''
 
-openai.api_key = "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"
+openai.api_key = "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"
 openai.base_url = "https://api.openai-proxy.com/v1/"
 
 
-query = 'Only one car on the scene, and the car makes a left lane change at the intersection while accelerating'  # @param {type:"string"}
+query = 'A car making a left lane change at the intersection'  # @param {type:"string"}
 
 print("query: ")
 print(query)
@@ -159,5 +159,5 @@ for example_idx in range(len(dataset.data_list)):
 img_list = gen_scenario_from_gpt_text(llm_result, cfg, model, map_vecs, map_ids)
 
 print("img_list generated")
-img_list[0].save("demo_llc.gif", save_all=True, append_images=img_list[1:])
+img_list[0].save("demo.gif", save_all=True, append_images=img_list[1:])
 

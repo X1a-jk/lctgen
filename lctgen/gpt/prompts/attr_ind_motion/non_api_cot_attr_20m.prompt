@@ -7,12 +7,20 @@ Explanation:
 - V2 is at a far distance (index 1) and moves with a fast speed (index 7). It is in the back right of ego car (index 2) with the same direction as the ego vehicle (index 0). Its actions are all to keep speed (index 4) at a fast pace.
 - V3 is at a farther distance (index 2) and also moves with a fast speed (index 7). It is in the front left of ego car (index 0) and has the same direction as the ego vehicle (index 0). Its actions are to keep speed (index 4) at a fast pace.
 Map: Because the scenario is very sparse, this occurs in a 8-lane two-way road with a four-lane intersection ahead. The ego vehicle is in the middle lane with lane id 3. The intersection is 15 meters away, with index 3.
+Event:
+- E1 (ego car) is all zero since it's ego car.
+- E2: V2 is in the back right at the begining and drives slower than ego car, so it remains in the back right with respect to ego car during the process. So all dimension of the vector is set to 3, representing the position "back_right".
+- E3: V3 is in the front left of ego car (index 0) and has the same direction as the ego vehicle, so all dimension of the vector is set to 2, representing the position "front_left".
 Actor Vector:
 - 'V1': [-1, 0, 0, 8, 4, 4, 4, 4]
 - 'V2': [2, 1, 0, 7, 4, 4, 4, 4]
 - 'V3': [0, 2, 0, 7, 4, 4, 4, 4]
 Map Vector:
 - 'Map': [4, 4, 2, 2, 3, 3]
+Event Vector:
+- ‘E1’: [0, 0, 0, 0, 0]
+- 'E2': [3, 3, 3, 3, 3]
+- 'E3': [2, 2, 2, 2, 2]
 
 Query: the scene is with meduim density. there are only vehicles on the back side of the center car. most cars are moving in medium speed. the center car moves staright.
 
@@ -23,6 +31,7 @@ Explanation:
 - V2-V4 are in the closest distance ranges (index 0 and 1). They are moving in the same direction as the ego vehicle (index 0). Because the ego car is on the second lane, they all located in the back right (index 2) of the ego vehicle. They are all moving with a medium speed (index 3 or 4),  Their actions are all to keep speed (index 4).
 - V5-V6 are in a further distance range (index 1). They are moving in the opposite direction of the ego vehicle (index 1), therefore they are all on the left side of ego vehicle, locating in the back left (index 1) of the ego vehicle. They are all moving with a medium speed (index 3 or 4), in the same direction as the ego vehicle (index 0). Their actions are all to keep speed (index 4).
 - Map: Given the medium density and the presence of vehicles behind the ego vehicle, we assume this happens on a 4-lane two-way road. The ego vehicle is in the second lane from the right, with lane id 2. There is no intersection nearby, indicated by -1.
+- Event: E1 is all zero vector, V2-V4 are located in the back right during the process, so E2-E4 are filled with index 3. V5 and V6 are moving in the opposite direction of the ego vehicle, so at first they are in front left (index 2) of ego car, and at last they will be in back left(index 1) with respect to ego car.
 Actor Vector:
 - 'V1': [-1, 0, 0, 4, 4, 4, 4, 4]
 - 'V2': [2, 0, 0, 4, 4, 4, 4, 4]
@@ -32,7 +41,13 @@ Actor Vector:
 - 'V6': [1, 1, 1, 4, 4, 4, 4, 4]
 Map Vector:
 - 'Map': [2, 2, 0, 0, -1, 2]
-
+Event Vector:
+- ‘E1’: [0, 0, 0, 0, 0]
+- 'E2': [3, 3, 3, 3, 3]
+- 'E3': [3, 3, 3, 3, 3]
+- ‘E4’: [3, 3, 3, 3, 3]
+- 'E5': [2, 2, 1, 1, 1]
+- 'E6': [2, 2, 2, 1, 1]
 
 Query: INSERT_QUERY_HERE
 

@@ -101,6 +101,7 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
 
     shapes = []
     collide = []
+
     poly = agents[0].get_polygon()[0]
     shapes.append(poly)
     for i in range(1, len(agents)):

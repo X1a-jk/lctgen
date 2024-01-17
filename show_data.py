@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-cfg_file = './cfgs/inference.yaml'
+cfg_file = './cfgs/train.yaml'
 cfg = get_config(cfg_file)
 '''
 model_cls = registry.get_model(cfg.MODEL.TYPE)
@@ -36,11 +36,27 @@ collate_fn = fc_collate_fn
 loader = DataLoader(dataset, batch_size=1, shuffle=True, pin_memory = False,
                 drop_last=False, num_workers=1, collate_fn=collate_fn)
 
+
+
+
 for i, batch in enumerate(loader):
     data = batch
+    # print(data['file'])
+    # print(data['gt_pos'].shape)
+    '''
+    for j in range(data['gt_pos'][0][:, data['agent_mask'][0], :].shape[1]):
+        print("***************************************************")
+        print(data['gt_pos'][0][:, data['agent_mask'][0], :][:, j, :])
+    '''
+    # print("real traj: ")
+    # print(data["gt_pos"][0][:, data['agent_mask'][0], :][:, 0, :])
     agents = data['agent']
-    file_name = 'vis/'+str(i)+'.png'
+    print("stop here")
+    file_id = batch['file'][0].split(".")[0]
+    file_name = "./map/" + file_id+'.png'
+    gif_name = './map/' + file_id+'.gif'
     demo_fig = visualize_input_seq(data, save=True, filename=file_name)
-
-
+    # demo_gif = visualize_output_seq(data, data)
+    # demo_gif[0].save(gif_name, save_all=True, append_images=demo_gif[1:])
+    break
 print("done")

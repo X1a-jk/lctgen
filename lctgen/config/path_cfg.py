@@ -19,7 +19,7 @@ _C.DATASET.TEXT = CN()
 
 _C.ROOT_DIR = '..'
 _C.DATASET.DATA_LIST.ROOT = 'data/list'
-_C.DATASET.DATA_PATH = '/home/ubuntu/dataset/waymo' # change to your own data path here
+_C.DATASET.DATA_PATH = '/home/ubuntu/DATA1/waymo' # change to your own data path here
 _C.SAVE_DIR = 'results'
 
 _C.LOGGER = 'wandb'

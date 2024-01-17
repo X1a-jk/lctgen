@@ -54,12 +54,10 @@ def visualize_map(data):
 def visualize_input_seq(data, agents = None, traj=None, sort_agent=True, clip_size=True, save=False, filename=None):
   MIN_LENGTH = 4.0
   MIN_WIDTH = 1.5
-
   center = data["center"][0].cpu().numpy()
   rest = data["rest"][0].cpu().numpy()
   bound = data["bound"][0].cpu().numpy()
   agent_mask = data["agent_mask"][0].cpu().numpy()
-  
   if agents is None:
     agent = data["agent"][0].cpu().numpy()
     agents = [WaymoAgent(agent[i:i+1]) for i in range(agent.shape[0]) if agent_mask[i]]
@@ -175,7 +173,6 @@ def draw_frame(t, output_scene, pred_agents, data):
 def visualize_output_seq(data, output, fps=10, pool_num=16):
   pred_agents = transform_traj_output_to_waymo_agent(output, fps=fps)
   T = len(pred_agents)
-
   image_list = []
   '''
   with multiprocessing.Pool(pool_num) as pool:

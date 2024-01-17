@@ -10,7 +10,7 @@ from trafficgen.utils.utils import process_map, rotate, cal_rel_dir
 from lctgen.core.registry import registry
 
 from .description import descriptions
-
+from .description import NeighborCarsDescription
 @registry.register_dataset(name='WaymoOpenMotion')
 class WaymoOpenMotionDataset(Dataset):
     def __init__(self, cfg, mode="", prefix=""):
@@ -74,21 +74,23 @@ class WaymoOpenMotionDataset(Dataset):
         data['text'] = txt_result['text']
         data['token'] = txt_result['token']
         data['text_index'] = txt_result['index']
-
+        data['nei_text'] = txt_result['nei_text']
         return data, txt_result
 
     def _get_text(self, data):
         txt_cfg = self.data_cfg.TEXT
         description = descriptions[txt_cfg.TYPE](data, txt_cfg)
+        neighbor_description = NeighborCarsDescription(data, txt_cfg)
         result = {}
         text, traj = description.get_category_text(txt_cfg.CLASS)
         token = text
         index = []
-        
+        neighbor_txt = neighbor_description.get_neighbor_text()
         result['text'] = text
         result['token'] = token
         result['index'] = index
         result['traj'] = traj
+        result['nei_text'] = neighbor_txt
         return result
 
     def _get_item_helper(self, index):

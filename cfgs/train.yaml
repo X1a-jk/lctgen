@@ -11,8 +11,8 @@ DATASET:
     RANDOM_MASK_RATE: 0.1
   TRAJ_TYPE: xy_theta_relative
   DATA_LIST:
-    TEST: val.txt
-    VAL: val.txt
+    TEST: train.txt
+    VAL: train.txt
     TRAIN: train.txt
   TEXT:
     TYPE: attr_ind
@@ -68,7 +68,7 @@ LOSS:
       bbox: 1.0
       motion: 0.1
 
-MAX_EPOCHES: 100
+MAX_EPOCHES: 80
 METRIC:
   TYPE:
   - MMD
@@ -97,7 +97,7 @@ MODEL:
         FF_DIM: 2048
         LANE_NUM: 384
         MAP_POS: none
-        MLP_DIM: 512
+        MLP_DIM: 256
         NHEAD: 4
         NLAYER: 1
         QUERY_NUM: 32
@@ -108,9 +108,9 @@ MODEL:
       ATTR_QUERY:
         POS_ENCODING_DIM: 252
 
-LOAD_CHECKPOINT_MODEL: True
-LOAD_CHECKPOINT_PATH: results/epoch=69-step=75530.ckpt
-LOAD_CHECKPOINT_TRAINER: True
+LOAD_CHECKPOINT_MODEL: False
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/796o6wdf/epoch34.ckpt
+LOAD_CHECKPOINT_TRAINER: False
 
 TEST:
   BATCH_SIZE: 16
@@ -118,7 +118,7 @@ TEST:
   NUM_WORKERS: 4
 TRAIN:
   BATCH_SIZE: 64
-  LR: 0.0003
+  LR: 0.001
   OPTIMIZER: AdamW
   SCHEDULER:
     MILESTONES:

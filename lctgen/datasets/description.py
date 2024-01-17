@@ -606,7 +606,6 @@ class AttrIndDescription(InitDescription):
       action_func = self._get_action_id_1_dim
     else:
       action_func = self._get_action_id_2_dim
-
     for adix, agent in enumerate(agents):
       try:
         init_speed = np.linalg.norm(agent.velocity)
@@ -733,7 +732,7 @@ class AttrIndDescription(InitDescription):
       result[cls] = self.get_category_text([cls], padding=False)
     return result
 
-class AttrCntDescriptionManual(AttrCntDescription):
+class AttrCntDescriptionManual(AttrIndDescription):
     def __init__(self, cfg, kv_dict):
       self.cnt_base = cfg.COUNT_BASE
       self.cfg = cfg
@@ -755,5 +754,139 @@ class AttrCntDescriptionManual(AttrCntDescription):
       self.distance_cnt = kv_dict['distance_cnt']
       self.speed_cnt = kv_dict['speed_cnt']
       self.ego_speed = kv_dict['ego_speed']
+
+class NeighborCarsDescription(AttrIndDescription):
+    MAX_DISTANCE = 72
+    MAX_SPEED = 50
+    MAX_CNT = 32
+    SOFT_TURN_DEG = 3
+    HARD_TURN_DEG = 12
+    SPEEDUP_ACCEL = 0.5
+    SPEEDDOWN_ACCEL = -1.0
+    STOP_SPEED = 1.0
+    VALID_LIMIT = 100
+    DIS_INTERVAL = 5
+
+    def __init__(self, data, cfg):
+        self.use_padding = cfg.USE_PADDING
+        self.padding_num = cfg.PADDING
+        self.flatten = cfg.FLATTEN
+        self.use_traj = cfg.USE_TRAJ
+        self.max_cnt = 32
+        super().__init__(data, cfg)
+
+    def _sort_agents(self, agents, agent_lanes, agent_vec_index, file, max_agent):
+        # sort agents by their distance to ego
+        dists = np.array([np.linalg.norm(agent.position) for agent in agents[1:]])
+        sorted_idx = np.argsort(dists)[:max_agent-1]
+        self.sorted_idx = sorted_idx
+        agents = agents[:1] + [agents[idx+1] for idx in sorted_idx]
+        agent_lanes = np.concatenate([agent_lanes[:1], agent_lanes[sorted_idx+1]], axis=0)
+        agent_vec_index = agent_vec_index[:1] + [agent_vec_index[idx+1] for idx in sorted_idx]
+
+        output_idx = np.concatenate([np.array([0]), sorted_idx+1])
+
+        data = [agents, agent_lanes, agent_vec_index, file, output_idx]
+        self.packed_data = data
+        return data
+
+    def _compute_property(self, agents, agent_lanes, agent_vec_index, file):
+        self.actor_dict = {}
+        max_agent = self.MAX_CNT if self.use_padding else len(agents)
+        for aid in range(max_agent):
+            self.actor_dict[aid] = [self.padding_num] * self.cfg.ACTION_STEP * self.cfg.ACTION_DIM
+                                                                                          
+                                                                                              
+        data = [agents, agent_lanes, agent_vec_index, file]
+        data = self._sort_agents(*data, max_agent)
+
+
+    def _get_neighbor_text(self, agents, agent_lanes, agent_vec_index, file, output_idx):
+        # print(self.data['file'])
+        SAMPLE_NUM = 5
+        '''
+        if len(self.data['agent_mask']) == 1:
+            all_trajs = self.data['traj']
+        else:
+            all_trajs = self.data['traj'][:, self.data['agent_mask']]
+        trajs = all_trajs#[:, self.sorted_idx]
+        if 'all_agent_mask' not in self.data:
+            traj_masks = np.ones_like(trajs[:, :, 0]) == True
+        else:
+            traj_masks = self.data['all_agent_mask'][:, self.data['agent_mask']][:, self.sorted_idx]
+        '''
+        action_step = self.cfg.ACTION_STEP
+        action_dim = self.cfg.ACTION_DIM
+        max_agent = self.MAX_CNT if self.use_padding else len(agents)
+        # future_angles = np.cumsum(self.data["future_heading"], axis=0)
+        trajs = self.data['gt_pos']
+        all_heading = self.data["future_heading"][:, self.data['agent_mask']]
+        traj_each_agent = {}
+        heading_each_agent = {}
+        for aix in range(trajs[:, self.data['agent_mask'], :].shape[1]):
+            pos_agent = trajs[:, self.data['agent_mask'], :][:, aix, :]
+            heading_agent = all_heading[:, aix]
+            valid_mask = (abs(pos_agent[:, 0])<self.VALID_LIMIT) * (abs(pos_agent[:, 1])<self.VALID_LIMIT)
+            pos_agent = pos_agent[valid_mask]
+            pos_step = pos_agent.shape[0]
+            sample_rate = pos_step // (action_step+1)
+            pos_agent = pos_agent[::sample_rate][:SAMPLE_NUM]
+            traj_each_agent.update({aix: pos_agent})
+            heading_agent = heading_agent[valid_mask]
+            heading_agent = heading_agent[::sample_rate][:SAMPLE_NUM].reshape((-1,1))
+            heading_each_agent.update({aix: heading_agent})
+
+        default = self.padding_num * torch.ones((max_agent, SAMPLE_NUM, 2))
+        default[0, :] = torch.zeros((1, SAMPLE_NUM, 2))
+        ego_heading = heading_each_agent[0]
+        
+        if len(traj_each_agent) <= 1:
+            default = default.view((max_agent, -1))
+            return [False, default]    
+        neighbor_trajs_tensor = self.padding_num * torch.ones((max_agent, SAMPLE_NUM, 2))
+
+        ego_traj = traj_each_agent[0]
+        neighbor_trajs_tensor[0, :] = torch.zeros((1, SAMPLE_NUM, 2))
+        for aidx in range(1,len(traj_each_agent)):
+            traj_temp = traj_each_agent[aidx]
+            for time_step in range(traj_temp.shape[0]):
+                ego_pos = ego_traj[time_step]
+                current_pos = traj_temp[time_step]
+                current_pos_rel = self.pos_rel(ego_heading[time_step], ego_pos, current_pos)
+                neighbor_trajs_tensor[aidx][time_step] = current_pos_rel
+        
+        neighbor_trajs_tensor = neighbor_trajs_tensor.view((max_agent, -1))
+        return [True, neighbor_trajs_tensor]
+    
+    def pos_rel(self, ego_heading, ego_pos, other_pos):
+        angle_init = ego_heading[0]
+        pos_rel = other_pos - ego_pos
+        dis_rel = np.linalg.norm(pos_rel)
+        degree_pos_rel = int(np.clip(dis_rel//self.DIS_INTERVAL, a_min=0, a_max=5))
+        deg_other = np.arctan2(pos_rel[1], pos_rel[0])
+        deg_rel = deg_other - ego_heading
+        if deg_rel > np.pi:
+            deg_rel -= 2 * np.pi
+        elif deg_rel < -1 * np.pi:
+            deg_rel += 2*np.pi
+        
+        if deg_rel < np.pi/9 and deg_rel > -1 * np.pi / 9:
+            ang = 0
+        elif deg_rel <= -1 * np.pi / 9 and deg_rel > -1 * np.pi / 2:
+            ang = 1
+        elif  deg_rel <= -1 * np.pi / 2 and deg_rel > -8 * np.pi/9:
+            ang = 2
+        elif deg_rel >= np.pi/9 and deg_rel < np.pi/2:
+            ang = 5
+        elif deg_rel >= np.pi/2 and deg_rel < 8*np.pi/9:
+            ang = 4
+        else:
+            ang = 3
+
+        return torch.tensor([degree_pos_rel, ang])
+
+    def get_neighbor_text(self):
+        return self._get_neighbor_text(*self.packed_data)
+
 
 descriptions = {'static': InitDescription, 'attr_cnt': AttrCntDescription, 'attr_cnt_manual': AttrCntDescriptionManual, 'attr_ind': AttrIndDescription,}

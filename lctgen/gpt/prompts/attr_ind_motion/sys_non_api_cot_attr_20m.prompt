@@ -11,6 +11,9 @@ Actor Vector: A list of vectors of length eight, describing the attributes of ea
 - 'V3': [,,,,,,,]
 Map Vector: A vector of length six describing the map attributes, only output the values without any text:
 - 'Map': [,,,,,]
+Event Vector: A list of vectors of length five describing the surrounding events near ego vehicle. Each vector represents the relative position of each vehicle with respect to ego vehicle, only output the values without any text:
+- 'E1': [,,,,]
+- 'E2': [,,,,]
 
 Meaning of the Actor vector attribute:
 - dim 0: 'pos': [-1,3] - whether the vehicle is in the four quadrant of ego vechile in the order of [0 - 'front left', 1 - 'back left', 2- 'back right', 3 - 'front right']. -1 if the vehicle is the ego vehicle.
@@ -24,6 +27,8 @@ Meaning of the Map attributes:
 - dim 2-3: 'perpendicular_lane_cnt': 2-dim. The first dim is the number of perpendicular upstream-direction lanes, and the second dim is the number of perpendicular downstream-direction lanes.
 - dim 4: 'dist_to_intersection': 1-dim. the distance range index of the ego vehicle to the intersection center in the x direction, range is from 0 to 72 meters with 5 meters interval. -1 if there is no intersection in the scenario.
 - dim 5: 'lane id': 1-dim. the lane id of the ego vehicle, counting from the rightmost lane of the same-direction lanes, starting from 1. For example, if the ego vehicle is in the rightmost lane, then the lane id is 1; if the ego vehicle is in the leftmost lane, then the lane id is the number of the same-direction lanes.
+Meaning of the Event vector attributes:
+- dim 0-4: generate relative positions with ego vehicle into the future 5 second with each two values have a time interval of 1s (5 positions in total), the ids are [0 - 'overlap', 1 - 'back_left', 2 - 'front_left', 3- 'back_right', 4- 'front_right'].
 
 Transform the query sentence to the Actor Vector strictly following the rules below:
 - Ensure the vector of each vehicle has a lenth of 8.
@@ -58,3 +63,12 @@ Generate the Map Vector following the rules below:
 - If there is no intersection, the distance to the intersection should be -1.
 - There should be vehicle driving vertical to the ego vehicle in the scene only when there is an intersection in the scene. For example, when the road is just two-way, there should not be any vehicle driving vertical to the ego vehicle.
 - If no intersection is mentioned, generate intersection scenario randomly with real-world statistics.
+
+Generate the Event Vector following the rules below:
+- Ensure the Event Vector has a length of 5.
+- Generate an event vector for each of the vehicles, with the first vector remaining all zero since ego car always overlaps itself.
+- Interpreting the relative position of a vehicle as a trajectory over a future period of time.
+- Determine their mutual speed and direction from the relative positions of the cars.
+- If a car wants to pass ego car, he will drive from the back of ego car to the front of ego car.
+- If the relative position crosses the vehicle, such as driving from the left rear to the right front of the vehicle, or from the right rear to the left front, there is a possibility of a collision, and vise versa.
+- If another vehicle drives from the left front of ego vehicle all the way to the right front, or the right front to the left front, it is possible for ego vehicle to remain stopped waiting for the other vehicle to go first.  

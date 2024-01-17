@@ -11,9 +11,9 @@ DATASET:
     RANDOM_MASK_RATE: 0.1
   TRAJ_TYPE: xy_theta_relative
   DATA_LIST:
-    TEST: 0.txt
-    VAL: 0.txt
-    TRAIN: 0.txt
+    TEST: val.txt
+    VAL: val.txt
+    TRAIN: val.txt
   TEXT:
     TYPE: attr_ind
     ALL_CLASSES:
@@ -43,9 +43,9 @@ DEBUG: true
 EXPERIMENT_DIR: lctgen
 EXPERIMENT_NAME: inference
 
-LOAD_CHECKPOINT_MODEL: true
-LOAD_CHECKPOINT_PATH: 'results/lctgen/train/lctgen_attr_ind_motion/54af8myp/checkpoints/epoch=99-step=107391.ckpt'
-LOAD_CHECKPOINT_TRAINER: true
+LOAD_CHECKPOINT_MODEL: True
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/ngshk6bc/checkpoints/last.ckpt
+LOAD_CHECKPOINT_TRAINER: True
 
 LOSS:
   DETR:
@@ -100,7 +100,7 @@ MODEL:
         FF_DIM: 2048
         LANE_NUM: 384
         MAP_POS: none
-        MLP_DIM: 512
+        MLP_DIM: 256
         NHEAD: 4
         NLAYER: 1
         QUERY_NUM: 32

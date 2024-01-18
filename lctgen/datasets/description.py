@@ -310,17 +310,18 @@ class AttrCntDescription(InitDescription):
     # dim 0-1: count the number of cars in left and right neighbor lanes
     # dim 2-3: count the number of cars in the front and back of ego car's lane
     self.lane_cnt = [0, 0, 0, 0]
-    
     if not os.path.exists(map_desc_file):
       return
     
     with open(map_desc_file, 'r') as f:
       map_desc = json.load(f)
+    
     agent_seg_ids = self.data['center_id'][agent_vec_index[1:]].squeeze().tolist()
-
+    # print(agent_seg_ids)
     if type(agent_seg_ids) is not list:
       agent_seg_ids = [agent_seg_ids]
     
+
     right_lanes = map_desc['same_right_dir_lanes']
     if len(right_lanes) > 0:
       right_neighbor_lanes = right_lanes[0]
@@ -351,7 +352,7 @@ class AttrCntDescription(InitDescription):
     super()._compute_property(*data)
     self._distance_cnt(*data)
     self._speed_cnt(*data)
-    self._lane_cnt(*data)
+    # self._lane_cnt(*data)
   
   def _generate_text(self):
     self.texts = {}
@@ -417,11 +418,11 @@ class AttrCntDescription(InitDescription):
     return result
 
 class AttrIndDescription(InitDescription):
-  TXT_CLASSES = ['pos', 'distance', 'direction', 'speed', 'action', 'full_traj'] # ['lane']
+  TXT_CLASSES = ['pos', 'distance', 'direction', 'speed', 'action', 'full_traj', 'traj_type'] # ['lane']
   MAX_DISTANCE = 72
   MAX_SPEED = 50
   MAX_CNT = 32
-
+  VALID_LIMIT = 100
   SOFT_TURN_DEG = 3
   HARD_TURN_DEG = 12
   SPEEDUP_ACCEL = 0.5
@@ -458,9 +459,11 @@ class AttrIndDescription(InitDescription):
       self.actor_dict[aid] = {}
       for attr in self.TXT_CLASSES:
         if attr == 'action':
-          self.actor_dict[aid][attr] = [self.padding_num] * 9 # self.cfg.ACTION_STEP * self.cfg.ACTION_DIM
+          self.actor_dict[aid][attr] = [self.padding_num] * 5 # self.cfg.ACTION_STEP * self.cfg.ACTION_DIM
         elif attr == 'full_traj':
           self.actor_dict[aid][attr] = self.padding_num*np.ones((self.cfg.MAX_TIME_STEP, self.cfg.ACTION_DIM))
+        elif attr == 'traj_type':
+          self.actor_dict[aid][attr] = -1
         else:
           self.actor_dict[aid][attr] = self.padding_num
       
@@ -475,6 +478,71 @@ class AttrIndDescription(InitDescription):
     if self.use_traj:
       self._action_cnt(*data)
     # self._lane_cnt(*data)
+  
+  def _agent_on_lane_cnt(self, agent_seg_ids, lanes, *args):
+    cnt = 0
+    indices = []
+    if type(lanes[0]) is list:
+      lane_seg_ids = []
+      for lane in lanes:
+        lane_seg_ids += lane
+    else:
+      lane_seg_ids = lanes
+
+    for idx, seg_id in enumerate(agent_seg_ids):
+      if seg_id in lane_seg_ids:
+        cnt += 1
+        indices.append(idx)
+
+    return cnt, indices
+
+  def _lane_cnt(self, agents, agent_lanes, agent_vec_index, file, *args):
+    map_id = file.split('/')[-1].split('.')[0]
+    map_desc_file = os.path.join(self.cfg.MAP_DESC_PATH, '{}.json'.format(map_id))
+
+    # dim 0-1: count the number of cars in left and right neighbor lanes
+    # dim 2-3: count the number of cars in the front and back of ego car's lane
+    self.lane_cnt = [0, 0, 0, 0]
+    if not os.path.exists(map_desc_file):
+      return
+    
+    with open(map_desc_file, 'r') as f:
+      map_desc = json.load(f)
+    
+    print(map_desc)
+    agent_seg_ids = self.data['center_id'][agent_vec_index[1:]].squeeze().tolist()
+    # print(agent_seg_ids)
+    if type(agent_seg_ids) is not list:
+      agent_seg_ids = [agent_seg_ids]
+    
+
+    right_lanes = map_desc['same_right_dir_lanes']
+    if len(right_lanes) > 0:
+      right_neighbor_lanes = right_lanes[0]
+      self.lane_cnt[0], _ = self._agent_on_lane_cnt(agent_seg_ids, right_neighbor_lanes)
+    
+    left_lanes = map_desc['same_left_dir_lanes']
+    opposite_lanes = map_desc['all_opposite_lanes']
+
+    if len(left_lanes) > 0:
+      left_neighbor_lanes = left_lanes[0]
+      self.lane_cnt[1], _ = self._agent_on_lane_cnt(agent_seg_ids, left_neighbor_lanes)
+    elif len(opposite_lanes) > 0:
+      left_neighbor_lanes = opposite_lanes[0]
+      self.lane_cnt[1], _ = self._agent_on_lane_cnt(agent_seg_ids, left_neighbor_lanes)
+    
+    if len(map_desc['all_same_dir_lanes']) == 0:
+      return
+    
+    ego_lane = map_desc['all_same_dir_lanes'][0]
+    _, agent_indices = self._agent_on_lane_cnt(agent_seg_ids, [ego_lane])
+    for idx in agent_indices:
+      if agents[idx + 1].position[0] > agents[0].position[0]:
+        self.lane_cnt[2] += 1
+      else:
+        self.lane_cnt[3] += 1
+
+  
 
   def _get_action_id_1_dim(self, traj_mask, degree, speed, accel):
     if not traj_mask:
@@ -531,19 +599,27 @@ class AttrIndDescription(InitDescription):
     return [Action[dir_act].value, Action[accl_act].value]
 
   def _get_action_from_traj(self, traj, sample_rate, init_speed):
-    actions = [0 for i in range(9)] #stop, straight, left-turn, right-turn, left-change-lane, right-change-lane, keep-speed, accelerate, deccelerate
-    
+    TIME_STEP = 5
+    MAX_STEPS = 5
+    actions = [0 for i in range(5)] 
+    #stop, straigt, left-turn, right-turn, left-change-lane, right-change-lane
+    speed_base = self.cfg.SPEED_BASE
+
     stop_lim = 1.0
     lane_width = 3.0
     ang_lim = 15
     accl_lim = 5
     keep_speed_lim = 1
 
+    # print(self.data['file'])
+
     valid_traj, _ = traj.shape
     if valid_traj<=2:
-      actions[0] = 1 #stop
-      return actions
-
+      traj_type = -1
+      for i in range(len(actions)):
+        actions[i] = int(init_speed // speed_base)
+      return actions, traj_type
+    
     pos_init = traj[0]
     pos_final = traj[-1]
     shift_final = traj[-1]-traj[-2]
@@ -552,26 +628,43 @@ class AttrIndDescription(InitDescription):
     deg_final = np.rad2deg(np.arctan2(shift_final[1], shift_final[0]))
     vel_init = traj[1]-traj[0]
     
-    pivots = traj[::sample_rate]
-    phase_vel = [np.linalg.norm(pivots[i+1]-pivots[i]) for i in range(len(pivots)-1)]    
-    phase_vel = [init_speed] + phase_vel
+    speed_traj = [np.linalg.norm(traj[i+1]-traj[i])/0.1 for i in range(len(traj)-1)]
+    pivots = speed_traj[::sample_rate]
+    # phase_vel = [np.linalg.norm(pivots[i+1]-pivots[i])/1 for i in range(len(pivots)-1)]    
+    phase_vel = [init_speed] + pivots
+    
+    '''
+    ini_speed = np.linalg.norm(traj[1] - traj[0]) / 0.1
+    avg_speed = np.linalg.norm(traj[-1]-traj[0]) / 5
+    final_speed = np.linalg.norm(shift_final) / 0.1
+    '''
 
-    if np.linalg.norm(pos_final)<stop_lim:
-      actions[0] = 1 # stop
-      return actions
+    if np.linalg.norm(pos_final)<stop_lim: # stop during the process
+      traj_type = 0
+      for i in range(len(actions)):
+        actions[i] = 0
+      return actions, traj_type
 
     if np.abs(y_final)<lane_width:
-      actions[1] = 1 # straight
+      traj_type = 1 # straight
     if y_final >= lane_width:
         if deg_final < ang_lim:
-            actions[4] = 1 # left lc
+            traj_type = 4 # left lc
         else:
-            actions[2] = 1 # left turn
+            traj_type = 2 # left turn
     if y_final <= -1 * lane_width:
         if deg_final >-1* ang_lim:
-            actions[5] = 1 # right lc
+            traj_type = 5 # right lc
         else:
-            actions[3] = 1 # right turn
+            traj_type = 3 # right turn
+
+    for j in range(len(actions)):
+        if j >= len(phase_vel):
+            actions[j] = int(phase_vel[-1] // speed_base)
+        else:
+            actions[j] = int(phase_vel[j] // speed_base)
+
+    '''
     if phase_vel == phase_vel.sort() or phase_vel[-1] - phase_vel[0] >= accl_lim:
         actions[7] = 1 # acc
     if phase_vel == phase_vel.sort(reverse=True) or phase_vel[-1] - phase_vel[0] <= -1*accl_lim:
@@ -579,11 +672,12 @@ class AttrIndDescription(InitDescription):
     
     if ((np.array(phase_vel)-np.mean(np.array(phase_vel)))<=keep_speed_lim).all():
         actions[6] = 1 # keep spd
-
-    return actions
+    '''
+    return actions, traj_type
     
 
   def _action_cnt(self, agents, agent_lanes, agent_vec_index, file, sorted_idx):
+    
     if len(self.data['agent_mask']) == 1:
       all_trajs = self.data['traj']
     else:
@@ -594,44 +688,69 @@ class AttrIndDescription(InitDescription):
     else:
       traj_masks = self.data['all_agent_mask'][:, self.data['agent_mask']][:, sorted_idx]
     
+    # trajs = self.data['gt_pos']
+
     action_step = self.cfg.ACTION_STEP
     action_dim = self.cfg.ACTION_DIM
     traj_step = trajs.shape[0]
     valid_data_lim = 100
-
-
-    sample_rate = traj_step // (action_step+1)
-
-    if action_dim == 1:
-      action_func = self._get_action_id_1_dim
-    else:
-      action_func = self._get_action_id_2_dim
-    for adix, agent in enumerate(agents):
+    SAMPLE_NUM = 100
+    all_heading = self.data["future_heading"][:, self.data['agent_mask']]
+    traj_each_agent = {}
+    heading_each_agent = {}
+    '''
+    for aix in range(trajs[:, self.data['agent_mask'], :].shape[1]):
+    
       try:
-        init_speed = np.linalg.norm(agent.velocity)
-        traj = trajs[:, adix, :]
-        x = traj[:, 0]
-        y = traj[:, 1]
-        valid_mask_x = np.abs(x)<valid_data_lim
-        valid_mask_y = np.abs(y)<valid_data_lim
-        valid_mask = [a and b for (a,b) in zip(valid_mask_x, valid_mask_y)]
-        traj = traj[valid_mask]
-        degrees, accels, speeds = get_degree_accel(trajs[::sample_rate, adix], init_speed)
-        init_info = traj[0]
-        final_info = traj[-1]
-        step = len(degrees)
-        actions = []
-        traj_mask = traj_masks[:, adix]
-        actions_from_traj = self._get_action_from_traj(traj, sample_rate, init_speed)
-        for i in range(step):
-          actions += action_func(traj_mask[i+1], degrees[i], speeds[i], accels[i])
-        self.actor_dict[adix]['action'] = actions_from_traj
-        self.actor_dict[adix]['full_traj'] = traj  
-
-      except Exception as e:
-        print(e)
-        self.actor_dict[adix]['action'] = [self.padding_num] * 9#[self.padding_num] * action_step * action_dim
-        self.actor_dict[adix]['full_traj'] = trajs[:, adix, :]
+        pos_agent = trajs[:, self.data['agent_mask'], :][:, aix, :]
+        init_speed = np.linalg.norm(self.data["future_vel"][:, self.data['agent_mask'], :][:, aix, :])
+        heading_agent = all_heading[:, aix]
+        valid_mask = (abs(pos_agent[:, 0])<self.VALID_LIMIT) * (abs(pos_agent[:, 1])<self.VALID_LIMIT)
+        pos_agent = pos_agent[valid_mask]
+        pos_step = pos_agent.shape[0]
+        sample_rate = pos_step // (action_step+1)
+        pos_agent_valid = pos_agent[::sample_rate][:SAMPLE_NUM]
+        print(pos_agent_valid)
+        actions_from_traj = self._get_action_from_traj(pos_agent_valid, init_speed)
+        print(actions_from_traj)
+        self.actor_dict[aix]['action'] = actions_from_traj
+        self.actor_dict[aix]['full_traj'] = pos_agent
+    '''
+        
+    sample_rate = traj_step // (action_step+1)
+    if action_dim == 1:
+        action_func = self._get_action_id_1_dim
+    else:
+        action_func = self._get_action_id_2_dim
+    for adix, agent in enumerate(agents):
+        try:
+            init_speed = np.linalg.norm(agent.velocity)
+            traj = trajs[:, adix, :]
+            x = traj[:, 0]
+            y = traj[:, 1]
+            valid_mask_x = np.abs(x)<valid_data_lim
+            valid_mask_y = np.abs(y)<valid_data_lim
+            valid_mask = [a and b for (a,b) in zip(valid_mask_x, valid_mask_y)]
+            traj = traj[valid_mask]
+            degrees, accels, speeds = get_degree_accel(trajs[::sample_rate, adix], init_speed)
+            init_info = traj[0]
+            final_info = traj[-1]
+            step = len(degrees)
+            actions = []
+            traj_mask = traj_masks[:, adix]
+            actions_from_traj, type_traj = self._get_action_from_traj(traj, sample_rate, init_speed)
+            for i in range(step):
+              actions += action_func(traj_mask[i+1], degrees[i], speeds[i], accels[i])
+            
+            self.actor_dict[adix]['action'] = actions_from_traj
+            self.actor_dict[adix]['full_traj'] = traj 
+            self.actor_dict[adix]['traj_type'] = type_traj
+        
+        except Exception as e:
+            print(e)
+            self.actor_dict[adix]['action'] = [self.padding_num] * 5#[self.padding_num] * action_step * action_dim
+            self.actor_dict[adix]['full_traj'] = trajs[:, adix, :]
+            self.actor_dict[adix]['traj_type'] = -1
 
   def _pos_cnt(self, agents, agent_lanes, *args):
     # compute the pos value for each agent
@@ -721,10 +840,11 @@ class AttrIndDescription(InitDescription):
           act_text += [self.padding_num for _ in range(len(attr_value))]
       results.append(np.array(act_text)[None, :])
       full_traj = attr_dict['full_traj']
+      traj_type = attr_dict['traj_type']
     results = np.float32(np.concatenate(results, axis=0))
     if self.flatten:
       results = np.reshape(results, [-1])
-    return results, full_traj
+    return results, full_traj, traj_type
 
   def get_text_dict(self):
     result = {}

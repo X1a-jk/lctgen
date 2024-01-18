@@ -18,3 +18,8 @@ data/
 results/
 traj2act_new/
 vis/
+*.csv
+*.png
+*.jpg
+map/
+map/*

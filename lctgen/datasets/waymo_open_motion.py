@@ -75,6 +75,7 @@ class WaymoOpenMotionDataset(Dataset):
         data['token'] = txt_result['token']
         data['text_index'] = txt_result['index']
         data['nei_text'] = txt_result['nei_text']
+        data['traj_type'] = txt_result['traj_type']
         return data, txt_result
 
     def _get_text(self, data):
@@ -82,11 +83,12 @@ class WaymoOpenMotionDataset(Dataset):
         description = descriptions[txt_cfg.TYPE](data, txt_cfg)
         neighbor_description = NeighborCarsDescription(data, txt_cfg)
         result = {}
-        text, traj = description.get_category_text(txt_cfg.CLASS)
+        text, traj, type_traj = description.get_category_text(txt_cfg.CLASS)
         token = text
         index = []
         neighbor_txt = neighbor_description.get_neighbor_text()
         result['text'] = text
+        result['traj_type'] = type_traj 
         result['token'] = token
         result['index'] = index
         result['traj'] = traj

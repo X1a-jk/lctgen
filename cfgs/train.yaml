@@ -11,9 +11,9 @@ DATASET:
     RANDOM_MASK_RATE: 0.1
   TRAJ_TYPE: xy_theta_relative
   DATA_LIST:
-    TEST: train.txt
-    VAL: train.txt
-    TRAIN: train.txt
+    TEST: map.txt
+    VAL: map.txt
+    TRAIN: map.txt
   TEXT:
     TYPE: attr_ind
     ALL_CLASSES:
@@ -23,6 +23,7 @@ DATASET:
     - 'speed'
     - 'action'
     - 'full_traj'
+    - 'type_traj'
     CLASS:
     - 'pos'
     - 'distance'
@@ -33,7 +34,7 @@ DATASET:
     NEGATIVE_SAMPLE_NUM: 10
     COUNT_BASE: 1
     DISTANCE_BASE: 20
-    SPEED_BASE: 2.5
+    SPEED_BASE: 5.0
     USE_PADDING: True
     PADDING: -1
     FLATTEN: False

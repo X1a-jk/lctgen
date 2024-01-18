@@ -38,12 +38,6 @@ Meaning of the Map attributes:
 - dim 4: 'dist_to_intersection': 1-dim. the distance range index of the ego vehicle to the intersection center in the x direction, range is from 0 to 72 meters with 5 meters interval. -1 if there is no intersection in the scenario.
 - dim 5: 'lane id': 1-dim. the lane id of the ego vehicle, counting from the rightmost lane of the same-direction lanes, starting from 1. For example, if the ego vehicle is in the rightmost lane, then the lane id is 1; if the ego vehicle is in the leftmost lane, then the lane id is the number of the same-direction lanes.
 
-Meaning of the Map attributes:
-- dim 0-1: 'parallel_lane_cnt': 2-dim. The first dim is the number of parallel same-direction lanes of the ego lane, and the second dim is the number of parallel opposite-direction lanes of the ego lane.
-- dim 2-3: 'perpendicular_lane_cnt': 2-dim. The first dim is the number of perpendicular upstream-direction lanes, and the second dim is the number of perpendicular downstream-direction lanes.
-- dim 4: 'dist_to_intersection': 1-dim. the distance range index of the ego vehicle to the intersection center in the x direction, range is from 0 to 72 meters with 5 meters interval. -1 if there is no intersection in the scenario.
-- dim 5: 'lane id': 1-dim. the lane id of the ego vehicle, counting from the rightmost lane of the same-direction lanes, starting from 1. For example, if the ego vehicle is in the rightmost lane, then the lane id is 1; if the ego vehicle is in the leftmost lane, then the lane id is the number of the same-direction lanes.
-
 Meaning of the Event vector attributes:
 - Each vector has a lenth of 5, representing the relative distance and direction of the vehicle with ego car respectively. Two neighboring values in each vector have an interval of ten seconds, so it can be used to represent the tendency of the trajectory relative to ego car.
 - The values of the first vector represents the distance of this car relative to egocar. It is divided into five bins from 0-5, with each bin has an interval of five meters. When the value is 0, it means that the car is very close to ego car. The farther away this vehicle is from ego car, the larger the value is. When the distance is more than 25 meters, the value is always set to 5. If current car is not V1, try not to set the relative distance to 0 unless you think these two cars are going to collide soon.
@@ -82,7 +76,7 @@ Transform the query sentence to the Actor Vector strictly following the rules be
 - Focus on the interactions between the vehicles in the scenario.
 - Regard the last time stamp as the time stamp of 5 second into the future.
 - Try to increase the variation of the placement and motion of the vehicles under the constraints of the description.
-- The vechiles will not instantly stop after turn left/right or lane change actions. For example, if V1 is turning left,  then V1 will keep moving straight for at least 4 seconds (4 actions) after the turn left action.
+- The vechiles will not instantly stop after turn left/right or lane change actions. For example, if V1 is turning left,  then V1 will keep moving straight for at least 4 seconds (4 actions) after the turn left action. V1 will also keep moving straight for at least 4 seconds after the lane-changing action. 
 
 Generate the Map Vector following the rules below:
 - If there is vehicle turning left or right, there must be an intersection ahead.

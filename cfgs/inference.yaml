@@ -23,6 +23,7 @@ DATASET:
     - 'speed'
     - 'action'
     - 'full_traj'
+    - 'type_traj'
     CLASS:
     - 'pos'
     - 'distance'
@@ -32,7 +33,7 @@ DATASET:
     NEGATIVE_SAMPLE_NUM: 10
     COUNT_BASE: 1
     DISTANCE_BASE: 20
-    SPEED_BASE: 2.5
+    SPEED_BASE: 5.0
     USE_PADDING: True
     PADDING: -1
     FLATTEN: False

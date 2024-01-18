@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from trafficgen.utils.model_utils import CG_stacked
 from .blocks import MLP, pos2posemb, PositionalEncoding
-from .att_fuse import ScaledDotProductAttention
+from .att_fuse import ScaledDotProductAttention, MultiHeadAttention
 
 copy_func = copy.deepcopy
 
@@ -44,6 +44,8 @@ class DETRAgentQuery(nn.Module):
         self.nei_decoder =  nn.TransformerDecoder(nei_decoder_layer, num_layers=dcfg.NLAYER)
 
         self.actor_query = nn.Parameter(torch.randn(1, dcfg.QUERY_NUM, d_model))
+        
+        self.head = 8
 
         self.speed_head = MLP([d_model, dcfg.MLP_DIM, 1])
         self.vel_heading_head = MLP([d_model, dcfg.MLP_DIM, 1])
@@ -80,7 +82,7 @@ class DETRAgentQuery(nn.Module):
         self.query_mask_head = MLP([d_model, mlp_dim*2, mlp_dim])
         self.memory_mask_head = MLP([d_model, mlp_dim*2, mlp_dim])
         
-        self.cross_attention = ScaledDotProductAttention(d_model)
+        self.cross_attention = MultiHeadAttention(self.head, d_model)#ScaledDotProductAttention(d_model)
         
         self.neighbor_txt_embedding = PositionalEncoding(d_model)
     def _init_motion_decoder(self, d_model, dcfg):
@@ -207,6 +209,7 @@ class DETRAgentQuery(nn.Module):
 
         # Agent Query
         attr_query_input = data['text']
+        type_traj = data['traj_type']
         attr_dim = attr_query_input.shape[-1]
         feat_dim = pos_enc_dim//attr_dim
         attr_query_encoding = pos2posemb(attr_query_input, feat_dim)
@@ -231,7 +234,6 @@ class DETRAgentQuery(nn.Module):
             nei_query_encoding = self.neighbor_txt_embedding(nei_query_encoding)
             nei_feat = self.nei_decoder(tgt=nei_query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
             agent_feat = self.cross_attention(agent_feat, nei_feat, nei_feat)
-        
 
         pred_logits = torch.einsum('bqk,bmk->bqm', query_mask, memory_mask)
 
@@ -246,5 +248,6 @@ class DETRAgentQuery(nn.Module):
         # Motion MLP
         if self.motion_cfg.ENABLE:
             self._motion_predict(result, agent_feat)
+            result['type_traj'] = type_traj
 
         return result

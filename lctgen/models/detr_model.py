@@ -129,7 +129,6 @@ class DETRAgentQuery(nn.Module):
             motion_pred = motion_pred.cumsum(dim=-2)
         
         result['pred_motion'] = motion_pred
-
         if self.motion_cfg.PRED_HEADING_VEL:
             future_heading_pred = self.angle_head(agent_feat).view(b, -1, self.m_K, pred_len, 1)
             future_vel_pred = self.vel_head(agent_feat).view(b, -1, self.m_K, pred_len, 2)

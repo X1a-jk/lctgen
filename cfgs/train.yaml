@@ -30,7 +30,7 @@ DATASET:
     - 'direction'
     - 'speed'
     - 'action'
-      # - 'full_traj'
+      #- 'type_traj'
     NEGATIVE_SAMPLE_NUM: 10
     COUNT_BASE: 1
     DISTANCE_BASE: 20
@@ -84,7 +84,7 @@ MODEL:
     CUMSUM: true
     PRED_MODE: mlp_gmm
     CLS_WEIGHT: 0.1
-    K: 12
+    K: 6
     PRED_HEADING_VEL: true
 
   PREDICT_EGO: true
@@ -107,7 +107,7 @@ MODEL:
         ATTR_GMM_K: 5
   
       ATTR_QUERY:
-        POS_ENCODING_DIM: 252
+        POS_ENCODING_DIM: 242
 
 LOAD_CHECKPOINT_MODEL: False
 LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/796o6wdf/epoch34.ckpt

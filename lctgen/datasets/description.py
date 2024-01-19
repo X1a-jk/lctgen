@@ -463,7 +463,7 @@ class AttrIndDescription(InitDescription):
         elif attr == 'full_traj':
           self.actor_dict[aid][attr] = self.padding_num*np.ones((self.cfg.MAX_TIME_STEP, self.cfg.ACTION_DIM))
         elif attr == 'traj_type':
-          self.actor_dict[aid][attr] = -1
+          self.actor_dict[aid][attr] = -2
         else:
           self.actor_dict[aid][attr] = self.padding_num
       
@@ -647,16 +647,17 @@ class AttrIndDescription(InitDescription):
 
     if np.abs(y_final)<lane_width:
       traj_type = 1 # straight
-    if y_final >= lane_width:
+    elif y_final >= lane_width:
         if deg_final < ang_lim:
             traj_type = 4 # left lc
         else:
             traj_type = 2 # left turn
-    if y_final <= -1 * lane_width:
+    else:
         if deg_final >-1* ang_lim:
             traj_type = 5 # right lc
         else:
             traj_type = 3 # right turn
+    
 
     for j in range(len(actions)):
         if j >= len(phase_vel):
@@ -745,7 +746,6 @@ class AttrIndDescription(InitDescription):
             self.actor_dict[adix]['action'] = actions_from_traj
             self.actor_dict[adix]['full_traj'] = traj 
             self.actor_dict[adix]['traj_type'] = type_traj
-        
         except Exception as e:
             print(e)
             self.actor_dict[adix]['action'] = [self.padding_num] * 5#[self.padding_num] * action_step * action_dim
@@ -826,6 +826,7 @@ class AttrIndDescription(InitDescription):
   def get_category_text(self, categories=['pos'], padding=True):
     results = []
     full_traj = []
+    traj_type = []
     for aidx in range(len(self.actor_dict)):
       attr_dict = self.actor_dict[aidx]
       act_text = []
@@ -839,9 +840,14 @@ class AttrIndDescription(InitDescription):
         elif padding:
           act_text += [self.padding_num for _ in range(len(attr_value))]
       results.append(np.array(act_text)[None, :])
+      
+      type_id = [attr_dict['traj_type']]
+      traj_type.append(np.array(type_id)[None, :])
+      
       full_traj = attr_dict['full_traj']
-      traj_type = attr_dict['traj_type']
+      # traj_type = attr_dict['traj_type']
     results = np.float32(np.concatenate(results, axis=0))
+    traj_type = np.int64(np.concatenate(traj_type, axis=0))
     if self.flatten:
       results = np.reshape(results, [-1])
     return results, full_traj, traj_type

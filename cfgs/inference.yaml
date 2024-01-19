@@ -30,6 +30,7 @@ DATASET:
     - 'direction'
     - 'speed'
     - 'action'
+      #- 'type_traj'
     NEGATIVE_SAMPLE_NUM: 10
     COUNT_BASE: 1
     DISTANCE_BASE: 20
@@ -87,7 +88,7 @@ MODEL:
     CUMSUM: true
     PRED_MODE: mlp_gmm
     CLS_WEIGHT: 0.1
-    K: 12
+    K: 6
     PRED_HEADING_VEL: true
 
   PREDICT_EGO: true

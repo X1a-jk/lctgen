@@ -18,7 +18,7 @@ class PostProcess(nn.Module):
       self.use_rel_heading = cfg.MODEL.USE_REL_HEADING
       super().__init__()
 
-    def _convert_motion_pred_to_traj(self, output, motion, motion_prob, heading):
+    def _convert_motion_pred_to_traj(self, output, motion, motion_prob, heading, type_traj):
       trajs = []
       rel_trajs = []
       for idx in range(len(output['agent'])):
@@ -26,7 +26,8 @@ class PostProcess(nn.Module):
         if self.cfg.MODEL.MOTION.PRED_MODE == 'mlp':
           a_motion = motion[idx]
         elif self.cfg.MODEL.MOTION.PRED_MODE in ['mlp_gmm', 'mtf']:
-          m_idx = np.argmax(motion_prob[idx])
+          # m_idx = np.argmax(motion_prob[idx])
+          m_idx = type_traj[idx][0]
           a_motion = motion[idx][m_idx]
         traj = a_motion
         rel_traj = np.concatenate([np.zeros((1, 2)), traj], axis=0)
@@ -141,6 +142,7 @@ class PostProcess(nn.Module):
           output['pred_logits'] = []
           output['traj'] = []
           output['rel_traj'] = []
+          output['traj_type'] = []
 
           outputs.append(output)
           continue
@@ -201,7 +203,7 @@ class PostProcess(nn.Module):
         
         output['agent_mask'] = torch.ones(len(output['agent']), dtype=torch.bool)
         output['probs'] = probs
-        
+        output['type_traj'] = preds['type_traj']
         if self.use_background:
           output['pred_logits'] = pred_logits[i, :, :-1].clone()
         else:
@@ -209,6 +211,8 @@ class PostProcess(nn.Module):
 
         if pred_motion:
           motion = preds['pred_motion'][i, query_idx].cpu().numpy()
+          type_traj = preds['type_traj'][i, query_idx].cpu().numpy()
+          print(type_traj)
           if 'motion_prob' in preds:
             motion_prob = preds['motion_prob']
             if len(motion_prob.shape) == 2:
@@ -217,7 +221,7 @@ class PostProcess(nn.Module):
           else:
             motion_prob = None
           heading = np.concatenate([agent.heading for agent in agent_list])
-          output['traj'], output['rel_traj'] = self._convert_motion_pred_to_traj(output, motion, motion_prob, heading)
+          output['traj'], output['rel_traj'] = self._convert_motion_pred_to_traj(output, motion, motion_prob, heading, type_traj)
 
           # TODO: add postprocessing for future heading and velocity
           if 'pred_future_heading' in preds:

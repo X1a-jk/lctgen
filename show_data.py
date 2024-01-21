@@ -42,8 +42,6 @@ loader = DataLoader(dataset, batch_size=1, shuffle=True, pin_memory = False,
 for i, batch in enumerate(loader):
     data = batch
     print(data['file'])
-    #print(data['traj_type'])
-    print(data['motion_prob'])
     '''
     for j in range(data['gt_pos'][0][:, data['agent_mask'][0], :].shape[1]):
         print("***************************************************")

@@ -78,14 +78,26 @@ def gen_scenario_from_gpt_text(llm_text, cfg, model, map_vecs, map_ids):
     vector_dim = len(agent_vector[0])
     event_dim = len(event_vector[0])
 
+    type_vector = [it[-1] for it in agent_vector]
+    agent_vector = [it[:-1] + [-1] for it in agent_vector]
+    
     agent_vector = agent_vector + [[-1]*vector_dim] * (MAX_AGENT_NUM - agent_num)
     event_vector = event_vector + [[-1]*event_dim] * (MAX_AGENT_NUM - agent_num)
+    
     # retrive map from map dataset
     sorted_idx = map_retrival(map_vector, map_vecs)[:1]
     map_id = map_ids[sorted_idx[0]]
     #load map data
     batch = get_map_data_batch(map_id, cfg)
 
+
+    type_len = batch['traj_type'].shape[1]
+    for i in range(type_len):
+        if i<len(type_vector):
+            batch['traj_type'][0, i, 0] = type_vector[i]
+        else:
+            batch['traj_type'][0, i, 0] = -2
+    
     # inference with LLM-output Structured Representation
     batch['text'] = torch.tensor(agent_vector, dtype=batch['text'].dtype, device=model.device)[None, ...]
     event_tensor = torch.tensor(event_vector, dtype=batch['nei_text'][1].dtype, device=model.device)[None, ...]
@@ -108,10 +120,8 @@ def gen_scenario_from_gpt_text(llm_text, cfg, model, map_vecs, map_ids):
     for k in batch.keys():
         if type(batch[k])==torch.Tensor:
             batch[k] = batch[k].to(model.device)
-    print("before processing")
     model_output = model.forward(batch, 'val')['text_decode_output']
     output_scene = model.process(model_output, batch, num_limit=1, with_attribute=True, pred_ego=True, pred_motion=True)
-    print("after processing")
     return vis_decode(batch, output_scene)
 
 from lctgen.inference.utils import load_all_map_vectors
@@ -138,7 +148,7 @@ openai.api_key = "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"
 openai.base_url = "https://api.openai-proxy.com/v1/"
 
 
-query = 'Two cars driving in the same lane, one right behind the other.'  # @param {type:"string"}
+query = 'Vehicles changing lanes to merge into the lane.'  # @param {type:"string"}
 
 print("query: ")
 print(query)
@@ -168,5 +178,5 @@ for example_idx in range(len(dataset.data_list)):
 img_list = gen_scenario_from_gpt_text(llm_result, cfg, model, map_vecs, map_ids)
 
 print("img_list generated")
-img_list[0].save("demo_bh.gif", save_all=True, append_images=img_list[1:])
+img_list[0].save("demo_mg.gif", save_all=True, append_images=img_list[1:])
 

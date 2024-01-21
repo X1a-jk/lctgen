@@ -156,6 +156,7 @@ class SetCriterion(nn.Module):
                         dists.append(dist)
                     dists = torch.stack(dists, dim=0)
                     min_index = traj.flatten() #torch.argmin(dists, dim=-1)
+                    print(min_index)
                     k_mask = mask.unsqueeze(1).repeat(1, K, 1, 1)
                     pos_loss = MSE(tgt_gt, src)
                     pos_loss[~k_mask] *= 0

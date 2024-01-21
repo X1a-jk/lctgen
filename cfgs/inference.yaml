@@ -46,7 +46,7 @@ EXPERIMENT_DIR: lctgen
 EXPERIMENT_NAME: inference
 
 LOAD_CHECKPOINT_MODEL: True
-LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/ngshk6bc/checkpoints/last.ckpt
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/hl60ooz4/checkpoints/last.ckpt
 LOAD_CHECKPOINT_TRAINER: True
 
 LOSS:
@@ -111,7 +111,7 @@ MODEL:
         ATTR_GMM_K: 5
   
       ATTR_QUERY:
-        POS_ENCODING_DIM: 252
+        POS_ENCODING_DIM: 242
 
     NORMALIZE: false
     PRETRAINED: false

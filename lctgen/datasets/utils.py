@@ -3,6 +3,7 @@ import numpy as np
 from trafficgen.utils.data_process.agent_process import WaymoAgent
 from trafficgen.utils.visual_init import draw
 from torch.utils.data.dataloader import default_collate
+from torch.utils.data import WeightedRandomSampler
 
 # try:
 #   tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
@@ -53,3 +54,22 @@ def fc_collate_fn(batch):
       result_batch[key] = default_collate([item[key] for item in batch])
   
   return result_batch
+
+def traj_action_sampler(dataset):
+  type_frequency = [0.42270312, 0.50473542, 0.02286027, 0.020658, 0.01507475, 0.01396844] #stop, straigt, left-turn, right-turn, left-change-lane, right-change-lane
+  weight_frequency = [1.0 / t for t in type_frequency]
+  weights_type = []
+  for i in range(len(dataset)):
+    data_temp = dataset[i]
+    agent_valid = 0
+    wgt_temp = 0.0
+    for tp in data_temp['traj_type']:
+      if tp[0] == -2:
+        continue
+      agent_valid += 1
+      wgt_temp += weight_frequency[tp[0]]
+    weights_type.append(wgt_temp / agent_valid)
+  print(len(dataset))
+  print(len(weights_type))
+  print(weights_type)
+  return 0

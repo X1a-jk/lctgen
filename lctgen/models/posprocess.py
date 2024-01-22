@@ -42,12 +42,12 @@ class PostProcess(nn.Module):
       rel_trajs = np.concatenate(rel_trajs, axis=1)
       return trajs, rel_trajs
   
-    def _convert_future_heading_pred(self, output, future_heading, future_vel, motion_prob, heading):
+    def _convert_future_heading_pred(self, output, future_heading, future_vel, motion_prob, heading, type_traj):
       headings = []
       vels = []
       for idx in range(len(output['agent'])):
-        m_idx = np.argmax(motion_prob[idx])
-
+        # m_idx = np.argmax(motion_prob[idx])
+        m_idx = type_traj[idx][0]
         a_heading = future_heading[idx][m_idx]
         a_vel = future_vel[idx][m_idx]
 
@@ -133,7 +133,6 @@ class PostProcess(nn.Module):
 
         vec = center[vec_idx]
         agent_num = vec.shape[0]
-
         if agent_num == 0:
           output['agent'] = []
           output['agent_mask'] = []
@@ -185,10 +184,12 @@ class PostProcess(nn.Module):
             if not intersect:
               non_collide.append(agent_i) 
               shapes.append(poly)
+
+        
           agent_list = [agent_list[j] for j in non_collide]
           query_idx = torch.stack([query_idx[j] for j in non_collide])
           vec_idx = torch.stack([vec_idx[j] for j in non_collide])
-
+        
         # get prob for each existing query
         probs = []
         for q_idx in query_idx:
@@ -208,11 +209,9 @@ class PostProcess(nn.Module):
           output['pred_logits'] = pred_logits[i, :, :-1].clone()
         else:
           output['pred_logits'] = pred_logits[i, :].clone()
-
         if pred_motion:
           motion = preds['pred_motion'][i, query_idx].cpu().numpy()
           type_traj = preds['type_traj'][i, query_idx].cpu().numpy()
-          print(type_traj)
           if 'motion_prob' in preds:
             motion_prob = preds['motion_prob']
             if len(motion_prob.shape) == 2:
@@ -222,12 +221,11 @@ class PostProcess(nn.Module):
             motion_prob = None
           heading = np.concatenate([agent.heading for agent in agent_list])
           output['traj'], output['rel_traj'] = self._convert_motion_pred_to_traj(output, motion, motion_prob, heading, type_traj)
-
           # TODO: add postprocessing for future heading and velocity
           if 'pred_future_heading' in preds:
             future_heading = preds['pred_future_heading'][i, query_idx].cpu().numpy()
             future_vel = preds['pred_future_vel'][i, query_idx].cpu().numpy()
-            output['future_heading'], output['future_vel'] = self._convert_future_heading_pred(output, future_heading, future_vel, motion_prob, heading)
+            output['future_heading'], output['future_vel'] = self._convert_future_heading_pred(output, future_heading, future_vel, motion_prob, heading, type_traj)
         
         # add gt ego vehicle to the scene if not pred ego
         if not pred_ego:

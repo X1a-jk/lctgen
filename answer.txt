@@ -1,0 +1,22 @@
+Summary: In this scenario, vehicles are merging into the ego car's lane. We generate 3 vehicles in the scene on a three-lane two-way road. The ego car is placed in the middle lane.
+
+Explanation:
+- V1 (ego vehicle) is in the center and moves forward. Because V1 moves at a moderate speed, its speed is set to 3 (moderate speed). During the process, V1 maintains a constant speed in a straight line at all times during the process, so all remaining speed levels are set to 3. Since V1 is driving in the straight lane, its trajectory class is set to 1.
+- V2 is at a close distance (index 1) and moves with a moderate speed (index 3). It is in the left of ego car (index 0) with the same direction as the ego vehicle (index 0). All remaining speed levels are set to 3. Since V2 is changing lanes to the right, its trajectory class is set to 5.
+- V3 is at a close distance (index 1) and also moves with a moderate speed (index 3). It is in the right of ego car (index 3) and has the same direction as the ego vehicle (index 0). All remaining speed levels are set to 3, and since V3 is changing lanes to the left, its trajectory class is set to 4.
+Map: Because the scenario involves lane changing, this occurs in a 3-lane two-way road with no intersection. The ego vehicle is in the middle lane with lane id 2.
+Event:
+- E1 (ego car) is all zero since it's ego car.
+- E2: V2 is in the left at the beginning and drives at the same speed as ego car, so it remains in the left with respect to ego car during the process. So the second vector is set to 0, representing the position "left". Since the scene involves lane changing, the relative distance is close between each vehicle and ego car. So the first vector is set to 1 for all the dimensions.
+- E3: V3 is in the right of ego car (index 3) and has the same direction as the ego vehicle, so all dimension of the vector is set to 3, representing the position "right". Since the scene involves lane changing, the relative distance is close between each vehicle and ego car. So the first vector is set to 1 since it is closer than V2.
+
+Actor Vector:
+- 'V1': [-1, 0, 0, 3, 3, 3, 3, 3, 3, 1]
+- 'V2': [0, 1, 0, 3, 3, 3, 3, 3, 3, 5]
+- 'V3': [3, 1, 0, 3, 3, 3, 3, 3, 3, 4]
+Map Vector:
+- 'Map': [3, 3, 0, 0, -1, 2]
+Event Vector:
+- ‘E1’: [0, 0, 0, 0, 0]|[0, 0, 0, 0, 0]
+- 'E2': [1, 1, 1, 1, 1]|[0, 0, 0, 0, 0]
+- 'E3': [1, 1, 1, 1, 1]|[3, 3, 3, 3, 3]

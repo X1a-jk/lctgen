@@ -208,6 +208,7 @@ class DETRAgentQuery(nn.Module):
 
         # Agent Query
         attr_query_input = data['text']
+        # print(attr_query_input)
         type_traj = data['traj_type']
         attr_dim = attr_query_input.shape[-1]
         feat_dim = pos_enc_dim//attr_dim
@@ -218,6 +219,7 @@ class DETRAgentQuery(nn.Module):
         # Generative Transformer
         agent_feat = self.decoder(tgt=query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
         # Position MLP + Map Mask MLP
+        # print(agent_feat)
         query_mask = self.query_mask_head(agent_feat)
         memory_mask = self.memory_mask_head(line_enc)
         
@@ -235,11 +237,9 @@ class DETRAgentQuery(nn.Module):
             agent_feat = self.cross_attention(agent_feat, nei_feat, nei_feat)
 
         pred_logits = torch.einsum('bqk,bmk->bqm', query_mask, memory_mask)
-
         if self.use_background:
             background_logits = self.background_head(agent_feat)
             pred_logits = torch.cat([pred_logits, background_logits], dim=-1)
-
         # Attribute MLP
         result = self._output_to_attrs(agent_feat)
         result['pred_logits'] = pred_logits

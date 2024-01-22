@@ -92,7 +92,6 @@ def output_formating_cot(result):
     return [], []
   vector_idx = vector_idx[0]
   event_idx = event_idx[0]
-
   for line in lines[vector_idx+1:]:
     if 'V' in line or 'Map' in line:
       if 'Vector' in line:
@@ -108,21 +107,18 @@ def output_formating_cot(result):
 
   for line in lines[event_idx+1:]:
     if 'E' in line or 'Map' in line:
-      if 'Vector' in line:
+      if 'Vector'in line or 'Map' in line:
         continue
-
+        
       data_line = line.split(':')[-1].strip()
       d_l = data_line.split("|")
       data_vec = eval(d_l[0])+eval(d_l[1])
-      if 'Map' in line:
-          continue
-      else:
-        event_vectors.append(data_vec)
+      event_vectors.append(data_vec)
 
   print('Agent vectors:', agent_vectors)
   print('Map vector:', map_vector)
   print('Event vectors: ', event_vectors)
-  
+
   return agent_vectors, map_vector, event_vectors
 
 def transform_dist_base(agent_vector, cfg):

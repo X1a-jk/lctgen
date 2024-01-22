@@ -18,6 +18,9 @@ def vis_decode(batch, ae_output):
     img = visualize_output_seq(batch, output=ae_output[0], pool_num=1)
     return img
 
+def vis_stat(batch, ae_output):
+    img = visualize_input_seq(batch, agents=ae_output[0]['agent'], traj=ae_output[0]['traj'])
+    return Image.fromarray(img)
 
 cfg_file = './cfgs/inference.yaml'
 cfg = get_config(cfg_file)
@@ -122,7 +125,12 @@ def gen_scenario_from_gpt_text(llm_text, cfg, model, map_vecs, map_ids):
             batch[k] = batch[k].to(model.device)
     model_output = model.forward(batch, 'val')['text_decode_output']
     output_scene = model.process(model_output, batch, num_limit=1, with_attribute=True, pred_ego=True, pred_motion=True)
-    return vis_decode(batch, output_scene)
+    # return "finished"
+    print(output_scene[0]['traj'].shape)
+    print(output_scene[0]['traj'][:,0,:])
+    print(output_scene[0]['traj'][:,1,:])
+    print(output_scene[0]['traj'][:,2,:])
+    return vis_decode(batch, output_scene), vis_stat(batch, output_scene)
 
 from lctgen.inference.utils import load_all_map_vectors
 
@@ -154,8 +162,11 @@ print("query: ")
 print(query)
 
 
-llm_result = llm_model.forward(query)
+# llm_result = llm_model.forward(query)
 
+with open('answer.txt', 'rb') as f:
+    llm_result = f.read()
+llm_result = llm_result.decode('utf-8')
 print('LLM inference result:')
 print(llm_result)
 
@@ -175,8 +186,9 @@ for example_idx in range(len(dataset.data_list)):
     #break
 '''
 
-img_list = gen_scenario_from_gpt_text(llm_result, cfg, model, map_vecs, map_ids)
+gif_list, jpg = gen_scenario_from_gpt_text(llm_result, cfg, model, map_vecs, map_ids)
 
 print("img_list generated")
-img_list[0].save("demo_mg.gif", save_all=True, append_images=img_list[1:])
+gif_list[0].save("demo_l.gif", save_all=True, append_images=gif_list[1:])
+jpg.save("demo_l.jpg", "JPEG")
 

@@ -606,7 +606,7 @@ class AttrIndDescription(InitDescription):
     speed_base = self.cfg.SPEED_BASE
 
     stop_lim = 1.0
-    lane_width = 3.0
+    lane_width = 4.0
     ang_lim = 15
     accl_lim = 5
     keep_speed_lim = 1
@@ -648,12 +648,12 @@ class AttrIndDescription(InitDescription):
     if np.abs(y_final)<lane_width:
       traj_type = 1 # straight
     elif y_final >= lane_width:
-        if deg_final < ang_lim:
+        if deg_final < ang_lim or y_final < 2 * lane_width:
             traj_type = 4 # left lc
         else:
             traj_type = 2 # left turn
     else:
-        if deg_final >-1* ang_lim:
+        if deg_final > -1* ang_lim or y_final > -2 * lane_width:
             traj_type = 5 # right lc
         else:
             traj_type = 3 # right turn

@@ -13,7 +13,7 @@ DATASET:
   DATA_LIST:
     TEST: val.txt
     VAL: val.txt
-    TRAIN: train.txt
+    TRAIN: val.txt
   TEXT:
     TYPE: attr_ind
     ALL_CLASSES:
@@ -23,16 +23,18 @@ DATASET:
     - 'speed'
     - 'action'
     - 'full_traj'
+    - 'type_traj'
     CLASS:
     - 'pos'
     - 'distance'
     - 'direction'
     - 'speed'
     - 'action'
+      #- 'type_traj'
     NEGATIVE_SAMPLE_NUM: 10
     COUNT_BASE: 1
     DISTANCE_BASE: 20
-    SPEED_BASE: 2.5
+    SPEED_BASE: 5.0
     USE_PADDING: True
     PADDING: -1
     FLATTEN: False
@@ -43,9 +45,9 @@ DEBUG: true
 EXPERIMENT_DIR: lctgen
 EXPERIMENT_NAME: inference
 
-LOAD_CHECKPOINT_MODEL: true
-LOAD_CHECKPOINT_PATH: 'results/lctgen/train/lctgen_attr_ind_motion/54af8myp/checkpoints/epoch=99-step=107391.ckpt'
-LOAD_CHECKPOINT_TRAINER: true
+LOAD_CHECKPOINT_MODEL: True 
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/ngshk6bc/checkpoints/last.ckpt
+LOAD_CHECKPOINT_TRAINER: True
 
 LOSS:
   DETR:
@@ -86,7 +88,7 @@ MODEL:
     CUMSUM: true
     PRED_MODE: mlp_gmm
     CLS_WEIGHT: 0.1
-    K: 12
+    K: 6
     PRED_HEADING_VEL: true
 
   PREDICT_EGO: true
@@ -100,7 +102,7 @@ MODEL:
         FF_DIM: 2048
         LANE_NUM: 384
         MAP_POS: none
-        MLP_DIM: 512
+        MLP_DIM: 256
         NHEAD: 4
         NLAYER: 1
         QUERY_NUM: 32
@@ -109,27 +111,27 @@ MODEL:
         ATTR_GMM_K: 5
   
       ATTR_QUERY:
-        POS_ENCODING_DIM: 252
+        POS_ENCODING_DIM: 242
 
     NORMALIZE: false
     PRETRAINED: false
 
 TEST:
-  BATCH_SIZE: 16
-  SHUFFLE: false
-  NUM_WORKERS: 4
-TRAIN:
   BATCH_SIZE: 64
+  SHUFFLE: false
+  NUM_WORKERS: 16
+TRAIN:
+  BATCH_SIZE: 128
   LR: 0.0003
   OPTIMIZER: AdamW
   SCHEDULER:
     MILESTONES:
     - 70
     - 90
-  NUM_WORKERS: 4
+  NUM_WORKERS: 16
 VAL:
-  BATCH_SIZE: 16
-  NUM_WORKERS: 4
+  BATCH_SIZE: 64
+  NUM_WORKERS: 16
 VAL_INTERVAL: 10
 VIS_INTERVAL: 20
 WANDB_PROJ: lctgen_attr_ind_motion

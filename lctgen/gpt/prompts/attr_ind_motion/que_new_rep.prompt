@@ -7,12 +7,22 @@ Explanation:
 - V2 is at a far distance (index 1) and moves with a fast speed (index 7). It is in the back right of ego car (index 2) with the same direction as the ego vehicle (index 0). Its actions are all to keep speed at a fast pace, so its "keep speed" is set to 1.
 - V3 is at a farther distance (index 2) and also moves with a fast speed (index 7). It is in the front left of ego car (index 0) and has the same direction as the ego vehicle (index 0). Its actions are to keep speed at a fast pace, so its "keep speed" is set to 1.
 Map: Because the scenario is very sparse, this occurs in a 8-lane two-way road with a four-lane intersection ahead. The ego vehicle is in the middle lane with lane id 3. The intersection is 15 meters away, with index 3.
+Event:
+- E1 (ego car) is all zero since it's ego car.
+- E2: V2 is in the back right at the begining and drives slower than ego car, so it remains in the back right with respect to ego car during the process. So the second vector is set to 2, representing the position "back_right". Since the scene is sparse, the relative is moderate between each vehicle and ego car. So the first vector is set to 3 for all the dimensions.
+- E3: V3 is in the front left of ego car (index 0) and has the same direction as the ego vehicle, so all dimension of the vector is set to 5, representing the position "front_left". Since the scene is sparse, the relative is moderate between each vehicle and ego car. So the first vector is set to four since it is furtherer than V2.
+
 Actor Vector:
 - 'V1': [-1, 0, 0, 8, 0, 1, 0, 0, 0, 0, 1, 0, 0]
 - 'V2': [2, 1, 0, 7, 0, 1, 0, 0, 0, 0, 1, 0, 0]
 - 'V3': [0, 2, 0, 7, 0, 1, 0, 0, 0, 0, 1, 0, 0]
 Map Vector:
 - 'Map': [4, 4, 2, 2, 3, 3]
+Event Vector:
+- ‘E1’: [0, 0, 0, 0, 0] | [0, 0, 0, 0, 0]
+- 'E2': [3, 3, 3, 3, 3] | [2, 2, 2, 2, 2]
+- 'E3': [4, 4, 4, 4, 4] | [5, 5, 5, 5, 5]
+
 
 Query: The scene is with meduim density. There are some cars at the intersection. The ego car is turning left, while some of the cars are turing right.
 
@@ -21,15 +31,21 @@ Summary: We generate 3 vehicles in the scene on a four-lane two-way road with an
 Explanation:
 - V1 (ego vehicle) is in the center and is making a left turn. Because cars should decelerate at the intersection, its 'deccelerate' should be set to 1, and its 'left-turn' should be set to 1.
 - V2 is moving in the same direction as the ego vehicle (index 0). Because the ego car is turning left on the left-most lane, V2 should locate in the back right (index 2) of the ego vehicle. It stops at the intersection, so its "stop" should be set to 1.
-- V3 is turninging right in the opposite direction of the ego vehicle (index 1), therefore it is on the left side of ego vehicle and driving towrads ego car, locating in the front left (index 0) of the ego vehicle. They are all moving with a medium speed (index 3 or 4), in the opposite direction as the ego vehicle (index 1). Its "right-turn" and "decelerate" should be set to 1.
+- V3 is turninging right in the opposite direction of the ego vehicle (index 1), therefore it is on the left side of ego vehicle and driving towrads ego car, locating in the front left (index 0) of the ego vehicle. They are all moving with a medium speed (index 3), in the opposite direction as the ego vehicle (index 1). Its "right-turn" and "decelerate" should be set to 1.
 - Map: Given the medium density and the presence of vehicles behind the ego vehicle, we assume this happens on a 4-lane two-way road. The ego vehicle is in the second lane from the right, with lane id 2. There is an intersection nearby, indicated by 4 since ego car is going to turn left.
+- Event: E1 is composed of two all-zero vectors, V2 is located in the back right(index 2) during the while V1 is making a left-turn. At first V2 was on the right side of the ego car, and after ego car has made the left turn, he would be on  the left side of ego car relatively. As V2 stops at the intersection, the distance between V2 and ego car will be increasing from 1 to 4. V3 is in the opposite direction of the ego vehicle, so at first it in front left (index 5) of ego car, and at last they will be driving in the same direction with V3 on the righter lane, it will be in back right(index 2) with respect to ego car. Its relative distance to V1 will be increasing.
+
+
 Actor Vector:
 - 'V1': [-1, 0, 0, 4, 0, 0, 1, 0, 0, 0, 0, 0, 1]
 - 'V2': [2, 0, 0, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0]
 - 'V3': [0, 1, 1, 3, 0, 0, 0 , 1, 0, 0, 0, 0, 1]
 Map Vector:
 - 'Map': [2, 2, 0, 0, 4, 2]
-
+Event Vector:
+- ‘E1’: [0, 0, 0, 0, 0] | [0, 0, 0, 0, 0]
+- 'E2': [1, 2, 2, 4, 4] | [2, 2, 3, 3, 4]
+- 'E3': [1, 1, 2, 2, 3] | [5, 5, 4, 4, 3]
 
 Query: INSERT_QUERY_HERE
 

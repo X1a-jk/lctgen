@@ -5,8 +5,7 @@ import numpy as np
 from tqdm import tqdm
 
 # home_path = '../TrafficFormerV2/heatmap/selected'
-home_path = '/Users/fenglan/Desktop/CUHK/TrafficGen/vis/gif'
-home_path = '/Users/fenglan/Desktop/CUHK/TrafficGen/cases/simulation'
+home_path = '/home/ubuntu/xiajunkai/lctgen/map'
 # home_path = '/Users/fenglan/Desktop/CUHK/TrafficGen/vis/heatmap'
 all_file = os.listdir(home_path)
 number_list = []
@@ -17,8 +16,8 @@ for x in all_file:
         pass
 number_list = np.sort(number_list)
 # for i in number_list:
-for i in range(10, 13):
-    path = os.path.join(home_path, f'{i}')
+for i, file in enumerate(all_file):
+    path = os.path.join(home_path)
     images = []
     file_list = os.listdir(path)
     gif_list = []

@@ -111,9 +111,23 @@ class SetCriterion(nn.Module):
                 bg_target = target_classes[bg_mask]
                 losses['background_error'] = 100 - accuracy(bg_logits, bg_target)[0]
         return losses
+
+    def weight_scene(self, traj, weight):
+        type_wgt = traj.cpu().tolist()
+        wgt_sum = 0.0
+        num = 0
+        for it in type_wgt:
+            if it[0] < 0:
+                continue
+            num +=1
+            wgt_sum += weight[it[0]]
+        return wgt_sum / num
     
-    def _compute_motion_loss(self, src_motion, src_probs, target_motion, target_motion_mask, loss_func, motion_attrs):
+    def _compute_motion_loss(self, src_motion, src_probs, target_motion, target_motion_mask, loss_func, motion_attrs, traj_type):
         pred_other_attr = self.motion_cfg.PRED_HEADING_VEL
+        
+        type_frequency = [0.42270312, 0.50473542, 0.02286027, 0.020658, 0.01507475, 0.01396844] #stop, straigt, left-turn, right-turn, left-change-lane, right-change-lane
+        weight_frequency = [1.0 / t for t in type_frequency]
 
         loss_attr = []
         motion_attr_loss = {'motion_pos': []}
@@ -128,7 +142,9 @@ class SetCriterion(nn.Module):
         if src_probs is None:
             src_probs = [None] * len(src_motion)
         b_idx = 0
-        for src, src_prob, tgt, mask in zip(src_motion, src_probs, target_motion, target_motion_mask):
+        
+        for src, src_prob, tgt, mask, traj in zip(src_motion, src_probs, target_motion, target_motion_mask, traj_type):
+            wgt_scene = self.weight_scene(traj, weight_frequency)
             if self.motion_cfg.PRED_MODE == 'mlp':
                 if tgt.shape[0] > 0 and mask.shape[0] > 0:
                     loss_attr.append(loss_func(src[mask], tgt[mask]))
@@ -138,7 +154,6 @@ class SetCriterion(nn.Module):
                 if tgt.shape[0] > 0 and mask.shape[0] > 0:
                     K = src.shape[1]
                     tgt_gt = tgt.unsqueeze(1).repeat(1, K, 1, 1)
-
                     dists = []
                     for i in range(len(src)):
                         tgt_gt_i = tgt_gt[i]
@@ -155,13 +170,13 @@ class SetCriterion(nn.Module):
                         dist = MSE(tgt_end, src_end).mean(-1)
                         dists.append(dist)
                     dists = torch.stack(dists, dim=0)
+                    # min_index = traj.flatten() #torch.argmin(dists, dim=-1)
                     min_index = torch.argmin(dists, dim=-1)
-
                     k_mask = mask.unsqueeze(1).repeat(1, K, 1, 1)
+                    single_mask = mask.unsqueeze(1)
                     pos_loss = MSE(tgt_gt, src)
                     pos_loss[~k_mask] *= 0
-                    # pos_loss = pos_loss.mean(-1).mean(-1)
-
+                    
                     # compute mean mse based on k_mask
                     pos_loss = pos_loss.sum(-1).sum(-1) / (k_mask.sum(-1).sum(-1) + 1e-6)
                     
@@ -173,25 +188,27 @@ class SetCriterion(nn.Module):
 
                     if pred_other_attr:
                         src_heading = motion_attrs['heading']['src'][b_idx]
-                        src_vel = motion_attrs['vel']['src'][b_idx]
+                        src_vel = motion_attrs['vel']['src'][b_idx]  
                         tgt_heading = motion_attrs['heading']['tgt'][b_idx][:, None, :, None].repeat(1, K, 1, 1)
                         tgt_vel = motion_attrs['vel']['tgt'][b_idx][:, None].repeat(1, K, 1, 1)
-
                         velo_loss = MSE(tgt_vel, src_vel)
                         velo_loss[~k_mask] *= 0
                         velo_loss = velo_loss.sum(-1).sum(-1) / (k_mask.sum(-1).sum(-1) + 1e-6)
+                        
+                        for rel_idx in range(velo_loss.shape[0]):
+                            rel_type = traj[rel_idx, 0].cpu().int()
+                            velo_loss[rel_idx, rel_type] *= weight_frequency[rel_type]
+                        
                         velo_loss = torch.gather(velo_loss, dim=1, index=min_index.unsqueeze(-1)).mean()
-
                         heading_loss = L1(tgt_heading, src_heading)
                         heading_loss[~k_mask[...,:1]] *= 0
                         heading_loss = heading_loss.sum(-1).sum(-1) / (k_mask[...,:1].sum(-1).sum(-1) + 1e-6)
                         heading_loss = torch.gather(heading_loss, dim=1, index=min_index.unsqueeze(-1)).mean()
-                    
                         motion_loss += velo_loss + heading_loss * 10.0
 
                         motion_attr_loss['motion_vel'].append(velo_loss)
                         motion_attr_loss['motion_heading'].append(heading_loss * 10.0)
-
+                    
                     loss_attr.append(motion_loss)
                 else:
                     loss_attr.append([])
@@ -200,16 +217,18 @@ class SetCriterion(nn.Module):
                         motion_attr_loss['motion_vel'].append([])
                         motion_attr_loss['motion_heading'].append([])
             
+            
             b_idx += 1
 
         return loss_attr, motion_attr_loss
 
     def loss_attributes(self, outputs, data, indices, num_boxes, log=True):
-        """Attribute loss
-        """
+        """Attribute loss"""
         attributes = ['speed', 'pos', 'vel_heading', 'bbox', 'heading']
         targets = data['targets']
-
+        
+        traj_type = data['traj_type']
+        
         if self.motion_cfg.ENABLE:
             attributes.append('motion')
 
@@ -238,7 +257,7 @@ class SetCriterion(nn.Module):
             else:
                 src_attrs = [outputs[f'pred_{attr}'][i][indices[i][0]] for i in range(len(indices))]
                 target_attrs = [targets[i][attr][indices[i][1]] for i in range(len(indices))]
-
+                gt_type = [traj_type[i][indices[i][0]] for i in range(len(indices))]
                 if attr == 'motion':
                     masks = [targets[i]['motion_mask'][indices[i][1]] for i in range(len(indices))]
                     if self.motion_cfg.PRED_MODE == 'mlp':
@@ -262,7 +281,7 @@ class SetCriterion(nn.Module):
                     loss_func = MSE
 
                 if attr == 'motion':
-                    loss_attr, loss_motion = self._compute_motion_loss(src_attrs, src_probs, target_attrs, masks, loss_func, motion_attrs)
+                    loss_attr, loss_motion = self._compute_motion_loss(src_attrs, src_probs, target_attrs, masks, loss_func, motion_attrs, gt_type)
                 else:
                     loss_attr = [loss_func(src, tgt) if len(tgt) > 0 else [] for src, tgt in zip(src_attrs, target_attrs)]
 

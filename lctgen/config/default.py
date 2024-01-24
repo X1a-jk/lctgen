@@ -20,6 +20,7 @@ _C.TASK_CONFIG = CN()  # task_config will be stored as a config node
 _C.CMD_TRAILING_OPTS = []  # store command line options as list of strings
 _C.TRAINER_NAME = "default"
 
+_C.LOGGER = "tsboard"
 _C.EXPERIMENT_DIR = "results/debug"
 _C.EXPERIMENT_NAME = "pipeline"
 _C.TENSORBOARD_DIR = "tensorboard"
@@ -239,7 +240,7 @@ _C.MODEL.MOTION.CLS_WEIGHT = 0.1
 
 _C.MODEL.SCENE = CN()
 
-_C.MODEL.SCENE.REMOVE_COLLISION = True
+_C.MODEL.SCENE.REMOVE_COLLISION = False
 
 _C.MODEL.SCENE.DEBUG = CN()
 _C.MODEL.SCENE.DEBUG.RANDOM_ENCODE = False

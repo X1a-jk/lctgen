@@ -24,11 +24,11 @@ def map_dict_to_vec(map_data):
   return map_vector
 
 def map_vec_distance(query, map_vec):
-  weight = np.array([1, 1, 1, 1, 1, 1])
-
+  weight = np.array([1, 1, 1, 1, 2, 1])
+  '''
   if query[2] + query[3] == 0:
     weight[4] = 0
-
+  '''
   result = np.abs(np.array(query)-map_vec)
   result = result * weight
   return np.sum(result, axis=1)
@@ -85,11 +85,13 @@ def vis_decode(batch, ae_output):
 def output_formating_cot(result):
   lines = result.split('\n')
   agent_vectors = []
+  event_vectors = []
   vector_idx = [idx for idx, line in enumerate(lines) if 'Actor Vector' in line]
+  event_idx = [idx for idx, line in enumerate(lines) if 'Event Vector' in line]
   if len(vector_idx) == 0:
     return [], []
   vector_idx = vector_idx[0]
-
+  event_idx = event_idx[0]
   for line in lines[vector_idx+1:]:
     if 'V' in line or 'Map' in line:
       if 'Vector' in line:
@@ -103,10 +105,21 @@ def output_formating_cot(result):
       else:
         agent_vectors.append(data_vec)
 
+  for line in lines[event_idx+1:]:
+    if 'E' in line or 'Map' in line:
+      if 'Vector'in line or 'Map' in line:
+        continue
+        
+      data_line = line.split(':')[-1].strip()
+      d_l = data_line.split("|")
+      data_vec = eval(d_l[0])+eval(d_l[1])
+      event_vectors.append(data_vec)
+
   print('Agent vectors:', agent_vectors)
   print('Map vector:', map_vector)
-  
-  return agent_vectors, map_vector
+  print('Event vectors: ', event_vectors)
+
+  return agent_vectors, map_vector, event_vectors
 
 def transform_dist_base(agent_vector, cfg):
   text_distance_base = 5

@@ -29,7 +29,7 @@ class CodexModel(BasicLLM):
       self.sys_prompt = open(sys_prompt_path).read().strip()
     else:
       self.sys_prompt = "Only answer with a function starting def execute_command."
-  
+    self.wait_order = "Do not respond yet, there are further questions that need to be answered."
   def prepare_prompt(self, query, base_prompt):
     extended_prompt = base_prompt.replace("INSERT_QUERY_HERE", query)
     return extended_prompt
@@ -38,13 +38,14 @@ class CodexModel(BasicLLM):
     if self.codex_cfg.MODEL == 'debug':
       resp = self.sys_prompt
     elif self.codex_cfg.MODEL in ("gpt-4", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"):
+      sys_message = [
+                  {"role": "system", "content": self.sys_prompt},
+                  {"role": "user", "content": self.wait_order}
+              ]
       responses = openai.chat.completions.create(
               model="gpt-4",
               # model='text-embedding-ada-002',
-              messages=[
-                  {"role": "system", "content": self.sys_prompt},
-                  {"role": "user", "content": extended_prompt}
-              ],
+              messages = sys_message, 
               temperature=self.codex_cfg.TEMPERATURE,
               max_tokens=self.codex_cfg.MAX_TOKENS,
               top_p = 1.,
@@ -52,6 +53,22 @@ class CodexModel(BasicLLM):
               presence_penalty=0,
               seed = 1
               )
+      resp = responses.choices[0].message.content
+      
+      query_message = [{"role": "assistant", "content": resp}] + [{"role": "user", "content": extended_prompt}]
+      
+      responses =  openai.chat.completions.create(
+              model="gpt-4",
+              # model='text-embedding-ada-002',
+              messages = query_message,
+              temperature=self.codex_cfg.TEMPERATURE,
+              max_tokens=self.codex_cfg.MAX_TOKENS,
+              top_p = 1.,
+              frequency_penalty=0,
+              presence_penalty=0,
+              seed = 1
+      ) 
+
       resp = responses.choices[0].message.content
     else:
       response = openai.Completion.create(

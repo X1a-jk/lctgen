@@ -17,3 +17,6 @@ results/
 data/
 results/
 traj2act_new/
+*.png
+*.txt
+*.csv

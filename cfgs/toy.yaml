@@ -11,9 +11,9 @@ DATASET:
     RANDOM_MASK_RATE: 0.1
   TRAJ_TYPE: xy_theta_relative
   DATA_LIST:
-    TEST: val.txt
-    VAL: val.txt
-    TRAIN: train.txt
+    TEST: map.txt
+    VAL: map.txt
+    TRAIN: map.txt
   TEXT:
     TYPE: attr_ind
     ALL_CLASSES:
@@ -25,16 +25,16 @@ DATASET:
     - 'full_traj'
     - 'type_traj'
     CLASS:
-    - 'pos'
-    - 'distance'
-    - 'direction'
-    - 'speed'
+      #    - 'pos'
+      #- 'distance'
+      #- 'direction'
+      #- 'speed'
     - 'action'
       #- 'type_traj'
     NEGATIVE_SAMPLE_NUM: 10
     COUNT_BASE: 1
     DISTANCE_BASE: 20
-    SPEED_BASE: 5.0
+    SPEED_BASE: 2.5
     USE_PADDING: True
     PADDING: -1
     FLATTEN: False
@@ -107,29 +107,29 @@ MODEL:
         ATTR_GMM_K: 5
   
       ATTR_QUERY:
-        POS_ENCODING_DIM: 234
+        POS_ENCODING_DIM: 242
 
 LOAD_CHECKPOINT_MODEL: False
 LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/796o6wdf/epoch34.ckpt
 LOAD_CHECKPOINT_TRAINER: False
 
 TEST:
-  BATCH_SIZE: 128
+  BATCH_SIZE: 16
   SHUFFLE: false
-  NUM_WORKERS: 32
+  NUM_WORKERS: 4
 TRAIN:
   BATCH_SIZE: 128
-  LR: 0.005
+  LR: 0.001
   OPTIMIZER: AdamW
   SCHEDULER:
     MILESTONES:
     - 20
     - 40
     - 60
-  NUM_WORKERS: 32
+  NUM_WORKERS: 16
 VAL:
-  BATCH_SIZE: 128
-  NUM_WORKERS: 32
-VAL_INTERVAL: 10
+  BATCH_SIZE: 16
+  NUM_WORKERS: 4
+VAL_INTERVAL: 5
 VIS_INTERVAL: 10
 WANDB_PROJ: lctgen_attr_ind_motion

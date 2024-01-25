@@ -22,6 +22,7 @@ DATASET:
     - 'direction'
     - 'speed'
     - 'action'
+    - 'type_traj'
     CLASS:
     - 'pos'
     - 'distance'
@@ -43,7 +44,7 @@ EXPERIMENT_DIR: lctgen
 EXPERIMENT_NAME: inference
 
 LOAD_CHECKPOINT_MODEL: true
-LOAD_CHECKPOINT_PATH: 'checkpoints/example.ckpt'
+LOAD_CHECKPOINT_PATH: /GPFS/data/xiajunkai/lctgen_result/lctgen/train/lctgen_attr_ind_motion/ffoaa4xt/checkpoints/last.ckpt
 LOAD_CHECKPOINT_TRAINER: true
 
 LOSS:

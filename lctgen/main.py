@@ -24,6 +24,7 @@ logging.captureWarnings(True)
 logging.getLogger('py.warnings').setLevel(logging.ERROR)
 
 def main():
+    # torch.multiprocessing.set_start_method('spawn')
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--run-type",

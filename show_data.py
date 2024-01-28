@@ -33,17 +33,14 @@ dataset.data_list = [dataset.data_list[example_idx]]
 '''
 
 collate_fn = fc_collate_fn
-loader = DataLoader(dataset, batch_size=8, shuffle=True, pin_memory = False,
+loader = DataLoader(dataset, batch_size=1, shuffle=True, pin_memory = False,
                 drop_last=False, num_workers=1, collate_fn=collate_fn)
-
-sampler = traj_action_sampler(dataset, 8)
-print(sampler)
 
 
 # type_lst = [0, 0, 0, 0, 0, 0]
 for i, batch in enumerate(loader):
     data = batch
-    # print(data['file'])
+    print(data['file'])
     # type_lst = [0, 0, 0, 0, 0, 0]
     '''
     for j in range(data['gt_pos'][0][:, data['agent_mask'][0], :].shape[1]):
@@ -53,15 +50,16 @@ for i, batch in enumerate(loader):
     # print("real traj: ")
     # print(data["gt_pos"][0][:, data['agent_mask'][0], :][:, 0, :])
     agents = data['agent']
+    print(data['text'])
     veh_type = data['traj_type'][:, data['agent_mask'][0], :].cpu().tolist()[0]
-
+    
     file_id = batch['file'][0].split(".")[0]
     file_name = "./map/" + file_id+'.png'
     gif_name = './map/' + file_id+'.gif'
     # demo_fig = visualize_input_seq(data, save=True, filename=file_name)
     # demo_gif = visualize_output_seq(data, data)
     # demo_gif[0].save(gif_name, save_all=True, append_images=demo_gif[1:])
-    break
+    # break
     '''
     if i % 100 == 0:
         print(type_lst)

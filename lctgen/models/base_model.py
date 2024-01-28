@@ -84,7 +84,14 @@ class BaseModel(pl.LightningModule):
                 metric_value = self.metrics[mode][metric_name].compute()
                 if type(metric_value) is dict:
                     for subname, subvalue in metric_value.items():
-                        self.log('{}/metric-{}-{}'.format(mode, metric_name, subname), subvalue, on_epoch=on_epoch, on_step=on_step, sync_dist=sync_dist)
+                        if not (type(subvalue) is list):
+                            self.log('{}/metric-{}-{}'.format(mode, metric_name, subname), subvalue, on_epoch=on_epoch, on_step=on_step, sync_dist=sync_dist)
+                        else:
+                            for ii, sval in enumerate(subvalue):
+                                if sval.cpu().isnan():
+                                    continue
+                                self.log('{}/metric-{}-{}-type{}'.format(mode, metric_name, subname, ii), sval, on_epoch=on_epoch, on_step=on_step, sync_dist=sync_dist)
+
                 else:
                     self.log('{}/metric-{}'.format(mode, metric_name), self.metrics[mode][metric_name], on_epoch=on_epoch, on_step=on_step, sync_dist=sync_dist)
             except Exception as e:
@@ -94,13 +101,14 @@ class BaseModel(pl.LightningModule):
       return {'loss': loss['full_loss'], 'model_output': model_output}
     
     def training_step(self, batch, batch_idx):
-        return self._batch_forward(batch, 'train', batch_idx)
-    
+        ans =  self._batch_forward(batch, 'train', batch_idx)
     def validation_step(self, batch, batch_idx):
-        return self._batch_forward(batch, 'val', batch_idx)
-    
+        ans = self._batch_forward(batch, 'val', batch_idx)
+        return ans
+
     def test_step(self, batch, batch_idx):
-        return self._batch_forward(batch, 'test', batch_idx)
+        ans = self._batch_forward(batch, 'test', batch_idx)
+        return ans
 
     def _configure_schedulers(self, optimizer, scheduler_config):
       scheduler_name = scheduler_config.TYPE

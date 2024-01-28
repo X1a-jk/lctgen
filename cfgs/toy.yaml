@@ -1,4 +1,4 @@
-SEED: 1
+SEED: 0
 SAVE_CHECKPOINT: true
 DATASET:
   CACHE: False
@@ -11,9 +11,9 @@ DATASET:
     RANDOM_MASK_RATE: 0.1
   TRAJ_TYPE: xy_theta_relative
   DATA_LIST:
-    TEST: val.txt
-    VAL: val.txt
-    TRAIN: val.txt
+    TEST: map.txt
+    VAL: map.txt
+    TRAIN: map.txt
   TEXT:
     TYPE: attr_ind
     ALL_CLASSES:
@@ -25,29 +25,25 @@ DATASET:
     - 'full_traj'
     - 'type_traj'
     CLASS:
-    - 'pos'
-    - 'distance'
-    - 'direction'
-    - 'speed'
+      #    - 'pos'
+      #- 'distance'
+      #- 'direction'
+      #- 'speed'
     - 'action'
       #- 'type_traj'
     NEGATIVE_SAMPLE_NUM: 10
     COUNT_BASE: 1
     DISTANCE_BASE: 20
-    SPEED_BASE: 5.0
+    SPEED_BASE: 2.5
     USE_PADDING: True
     PADDING: -1
     FLATTEN: False
     USE_TRAJ: True
     ACTION_STEP: 4
 
-DEBUG: true
+DEBUG: False
 EXPERIMENT_DIR: lctgen
-EXPERIMENT_NAME: inference
-
-LOAD_CHECKPOINT_MODEL: True 
-LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/ju0om6lr/checkpoints/last.ckpt
-LOAD_CHECKPOINT_TRAINER: True
+EXPERIMENT_NAME: train
 
 LOSS:
   DETR:
@@ -73,7 +69,7 @@ LOSS:
       bbox: 1.0
       motion: 0.1
 
-MAX_EPOCHES: 100
+MAX_EPOCHES: 80
 METRIC:
   TYPE:
   - MMD
@@ -111,27 +107,29 @@ MODEL:
         ATTR_GMM_K: 5
   
       ATTR_QUERY:
-        POS_ENCODING_DIM: 240
+        POS_ENCODING_DIM: 242
 
-    NORMALIZE: false
-    PRETRAINED: false
+LOAD_CHECKPOINT_MODEL: False
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/796o6wdf/epoch34.ckpt
+LOAD_CHECKPOINT_TRAINER: False
 
 TEST:
-  BATCH_SIZE: 64
+  BATCH_SIZE: 16
   SHUFFLE: false
-  NUM_WORKERS: 16
+  NUM_WORKERS: 4
 TRAIN:
   BATCH_SIZE: 128
-  LR: 0.0003
+  LR: 0.001
   OPTIMIZER: AdamW
   SCHEDULER:
     MILESTONES:
-    - 70
-    - 90
+    - 20
+    - 40
+    - 60
   NUM_WORKERS: 16
 VAL:
-  BATCH_SIZE: 64
-  NUM_WORKERS: 16
-VAL_INTERVAL: 10
-VIS_INTERVAL: 20
+  BATCH_SIZE: 16
+  NUM_WORKERS: 4
+VAL_INTERVAL: 5
+VIS_INTERVAL: 10
 WANDB_PROJ: lctgen_attr_ind_motion

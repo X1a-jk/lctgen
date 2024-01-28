@@ -67,6 +67,7 @@ def pos2posemb(pos, num_pos_feats=128, temperature=10000):
   pos = pos * scale
   dim_t = torch.arange(num_pos_feats, dtype=torch.float32, device=pos.device)
   dim_t = temperature ** (2 * (dim_t // 2) / num_pos_feats)
+  
   D = pos.shape[-1]
   pos_dims = []
   for i in range(D):

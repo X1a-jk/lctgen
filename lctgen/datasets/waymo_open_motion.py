@@ -11,6 +11,7 @@ from lctgen.core.registry import registry
 
 from .description import descriptions
 from .description import NeighborCarsDescription
+
 @registry.register_dataset(name='WaymoOpenMotion')
 class WaymoOpenMotionDataset(Dataset):
     def __init__(self, cfg, mode="", prefix=""):
@@ -74,25 +75,26 @@ class WaymoOpenMotionDataset(Dataset):
         data['text'] = txt_result['text']
         data['token'] = txt_result['token']
         data['text_index'] = txt_result['index']
-        data['nei_text'] = txt_result['nei_text']
         data['traj_type'] = txt_result['traj_type']
+        data['nei_text'] = txt_result['nei_text']
         return data, txt_result
 
     def _get_text(self, data):
         txt_cfg = self.data_cfg.TEXT
         description = descriptions[txt_cfg.TYPE](data, txt_cfg)
-        neighbor_description = NeighborCarsDescription(data, txt_cfg)
         result = {}
-        text, traj, type_traj = description.get_category_text(txt_cfg.CLASS)
+        
+        text, type_traj = description.get_category_text(txt_cfg.CLASS)
         token = text
         index = []
+        neighbor_description = NeighborCarsDescription(data, txt_cfg)
         neighbor_txt = neighbor_description.get_neighbor_text()
+        result['nei_text'] = neighbor_txt
         result['text'] = text
-        result['traj_type'] = type_traj 
         result['token'] = token
         result['index'] = index
-        result['traj'] = traj
-        result['nei_text'] = neighbor_txt
+        result['traj_type'] = type_traj 
+        
         return result
 
     def _get_item_helper(self, index):

@@ -24,11 +24,11 @@ def map_dict_to_vec(map_data):
   return map_vector
 
 def map_vec_distance(query, map_vec):
-  weight = np.array([1, 1, 1, 1, 1, 1])
-
+  weight = np.array([1, 1, 1, 1, 2, 1])
+  '''
   if query[2] + query[3] == 0:
     weight[4] = 0
-
+  '''
   result = np.abs(np.array(query)-map_vec)
   result = result * weight
   return np.sum(result, axis=1)

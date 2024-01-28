@@ -197,7 +197,8 @@ class DETRAgentQuery(nn.Module):
         line_enc = line_enc[:, :data['center_mask'].shape[1]]
 
         # Agent Query
-        attr_query_input = data['text']
+        attr_query_input = data['text'][:, :, :-1]
+        print(attr_query_input[0, 0, :])
         attr_dim = attr_query_input.shape[-1]
         attr_query_encoding = pos2posemb(attr_query_input, pos_enc_dim//attr_dim)
         attr_query_encoding = self.query_embedding_layer(attr_query_encoding)

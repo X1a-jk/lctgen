@@ -133,12 +133,12 @@ class TrajMatch(Metric):
     super().__init__()
     self.traj_metrics = {}
     self.traj_metrics['scr'] = MeanMetric()
-    self.traj_metrics['ade'] = []
-    self.traj_metrics['fde'] = []
-    self.K = cfg.MODEL.MOTION.K
+    self.traj_metrics['ade'] = {}
+    self.traj_metrics['fde'] = {}
+    self.K = 6
     for i in range(self.K):
-        self.traj_metrics['ade'].append(MeanMetric())
-        self.traj_metrics['fde'].append(MeanMetric())
+        self.traj_metrics['ade'][i] = MeanMetric()
+        self.traj_metrics['fde'][i] = MeanMetric()
 
     '''
     for i in range(self.K):
@@ -234,21 +234,21 @@ class TrajMatch(Metric):
   def compute(self):
     results = {}
     for attr in self.traj_metrics:
-        if not(type(self.traj_metrics[attr]) is list):
+        if not(type(self.traj_metrics[attr]) is dict):
             self.traj_metrics[attr].to(self.device)
             results[attr] = self.traj_metrics[attr].compute()
         else:
-            results[attr] = []
-            for i, it in enumerate(self.traj_metrics[attr]):
+            results[attr] = {}
+            for i in self.traj_metrics[attr]:
+                it = self.traj_metrics[attr][i]
                 it.to(self.device)
-                results[attr].append(it.compute())
-
+                results[attr][i] = it.compute()
     return results
 
   def reset(self):
         for attr in self.traj_metrics:
-            if not(type(self.traj_metrics[attr]) is list):
+            if not(type(self.traj_metrics[attr]) is dict):
                 self.traj_metrics[attr].reset()
             else:
-                for it in self.traj_metrics[attr]:
-                    it.reset()
+                for i in self.traj_metrics[attr]:
+                    self.traj_metrics[attr][i].reset()

@@ -22,6 +22,7 @@ DATASET:
     - 'direction'
     - 'speed'
     - 'action'
+    - 'type_traj'
     CLASS:
     - 'pos'
     - 'distance'
@@ -125,6 +126,6 @@ TRAIN:
 VAL:
   BATCH_SIZE: 32
   NUM_WORKERS: 8
-VAL_INTERVAL: 3
-VIS_INTERVAL: 3
+VAL_INTERVAL: 5
+VIS_INTERVAL: 5
 WANDB_PROJ: lctgen_attr_ind_motion

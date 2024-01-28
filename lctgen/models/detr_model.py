@@ -187,7 +187,7 @@ class DETRAgentQuery(nn.Module):
     def forward(self, data):
         attr_cfg = self.model_cfg.ATTR_QUERY
         pos_enc_dim = attr_cfg.POS_ENCODING_DIM
-        
+        type_traj = data['traj_type']
         # Map Encoder
         b = data['lane_inp'].shape[0]
         device = data['lane_inp'].device
@@ -198,7 +198,6 @@ class DETRAgentQuery(nn.Module):
 
         # Agent Query
         attr_query_input = data['text'][:, :, :-1]
-        print(attr_query_input[0, 0, :])
         attr_dim = attr_query_input.shape[-1]
         attr_query_encoding = pos2posemb(attr_query_input, pos_enc_dim//attr_dim)
         attr_query_encoding = self.query_embedding_layer(attr_query_encoding)
@@ -225,5 +224,5 @@ class DETRAgentQuery(nn.Module):
         # Motion MLP
         if self.motion_cfg.ENABLE:
             self._motion_predict(result, agent_feat)
-
+            result['type_traj'] = type_traj
         return result

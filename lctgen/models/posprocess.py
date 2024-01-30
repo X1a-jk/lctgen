@@ -26,8 +26,8 @@ class PostProcess(nn.Module):
         if self.cfg.MODEL.MOTION.PRED_MODE == 'mlp':
           a_motion = motion[idx]
         elif self.cfg.MODEL.MOTION.PRED_MODE in ['mlp_gmm', 'mtf']:
-          #m_idx = np.argmax(motion_prob[idx])
-          m_idx = type_traj[idx][0]
+          m_idx = np.argmax(motion_prob[idx])
+          #m_idx = type_traj[idx][0]
           a_motion = motion[idx][m_idx]
         traj = a_motion
         rel_traj = np.concatenate([np.zeros((1, 2)), traj], axis=0)
@@ -46,8 +46,8 @@ class PostProcess(nn.Module):
       headings = []
       vels = []
       for idx in range(len(output['agent'])):
-        #m_idx = np.argmax(motion_prob[idx])
-        m_idx = type_traj[idx][0]
+        m_idx = np.argmax(motion_prob[idx])
+        #m_idx = type_traj[idx][0]
         a_heading = future_heading[idx][m_idx]
         a_vel = future_vel[idx][m_idx]
 

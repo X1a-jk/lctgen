@@ -81,7 +81,6 @@ class WaymoOpenMotionDataset(Dataset):
         txt_cfg = self.data_cfg.TEXT
         description = descriptions[txt_cfg.TYPE](data, txt_cfg)
         result = {}
-
         text, type_traj = description.get_category_text(txt_cfg.CLASS)
         token = text
         index = []
@@ -90,7 +89,6 @@ class WaymoOpenMotionDataset(Dataset):
         result['token'] = token
         result['index'] = index
         result['traj_type'] = type_traj 
-        
         return result
 
     def _get_item_helper(self, index):

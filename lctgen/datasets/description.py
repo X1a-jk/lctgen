@@ -422,7 +422,7 @@ class AttrIndDescription(InitDescription):
   MAX_DISTANCE = 72
   MAX_SPEED = 50
   MAX_CNT = 32
-  VALID_LIMIT = 100
+
   SOFT_TURN_DEG = 3
   HARD_TURN_DEG = 12
   SPEEDUP_ACCEL = 0.5
@@ -534,16 +534,24 @@ class AttrIndDescription(InitDescription):
   def _get_action_from_traj(self, traj, sample_rate, init_speed):
     TIME_STEP = 5
     MAX_STEPS = 5
+    actions = [1 for i in range(5)] 
+    #stop, straigt, left-turn, right-turn, left-change-lane, right-change-lane
     speed_base = self.cfg.SPEED_BASE
+
     stop_lim = 1.0
     lane_width = 4.0
     ang_lim = 15
+    accl_lim = 5
+    keep_speed_lim = 1
+
+    # print(self.data['file'])
 
     valid_traj, _ = traj.shape
     if valid_traj<=2:
       traj_type = -1
-
-      return traj_type
+      for i in range(len(actions)):
+        actions[i] = int(init_speed // speed_base) + 1
+      return actions, traj_type
     
     pos_init = traj[0]
     pos_final = traj[-1]
@@ -558,11 +566,17 @@ class AttrIndDescription(InitDescription):
     # phase_vel = [np.linalg.norm(pivots[i+1]-pivots[i])/1 for i in range(len(pivots)-1)]    
     phase_vel = [init_speed] + pivots
     
+    '''
+    ini_speed = np.linalg.norm(traj[1] - traj[0]) / 0.1
+    avg_speed = np.linalg.norm(traj[-1]-traj[0]) / 5
+    final_speed = np.linalg.norm(shift_final) / 0.1
+    '''
 
     if np.linalg.norm(pos_final)<stop_lim: # stop during the process
       traj_type = 0
-
-      return  traj_type
+      for i in range(len(actions)):
+        actions[i] = 1
+      return actions, traj_type
 
     if np.abs(y_final)<lane_width:
       traj_type = 1 # straight
@@ -576,9 +590,24 @@ class AttrIndDescription(InitDescription):
             traj_type = 5 # right lc
         else:
             traj_type = 3 # right turn
+    
 
-   
-    return traj_type
+    for j in range(len(actions)):
+        if j >= len(phase_vel):
+            actions[j] = int(phase_vel[-1] // speed_base) + 1
+        else:
+            actions[j] = int(phase_vel[j] // speed_base) + 1
+
+    '''
+    if phase_vel == phase_vel.sort() or phase_vel[-1] - phase_vel[0] >= accl_lim:
+        actions[7] = 1 # acc
+    if phase_vel == phase_vel.sort(reverse=True) or phase_vel[-1] - phase_vel[0] <= -1*accl_lim:
+        actions[8] = 1 # dec
+    
+    if ((np.array(phase_vel)-np.mean(np.array(phase_vel)))<=keep_speed_lim).all():
+        actions[6] = 1 # keep spd
+    '''
+    return actions, traj_type
 
   def _action_cnt(self, agents, agent_lanes, agent_vec_index, file, sorted_idx):
     if len(self.data['agent_mask']) == 1:
@@ -595,7 +624,6 @@ class AttrIndDescription(InitDescription):
     action_dim = self.cfg.ACTION_DIM
     traj_step = trajs.shape[0]
     sample_rate = traj_step // (action_step+1)
-    valid_data_lim = 100
 
     if action_dim == 1:
       action_func = self._get_action_id_1_dim
@@ -604,7 +632,6 @@ class AttrIndDescription(InitDescription):
 
     for adix, agent in enumerate(agents):
       try:
-        init_speed = np.linalg.norm(agent.velocity)
         traj = trajs[:, adix, :]
         x = traj[:, 0]
         y = traj[:, 1]
@@ -612,11 +639,12 @@ class AttrIndDescription(InitDescription):
         valid_mask_y = np.abs(y)<valid_data_lim
         valid_mask = [a and b for (a,b) in zip(valid_mask_x, valid_mask_y)]
         traj = traj[valid_mask]
+        init_speed = np.linalg.norm(agent.velocity)
         degrees, accels, speeds = get_degree_accel(trajs[::sample_rate, adix], init_speed)
         step = len(degrees)
         actions = []
         traj_mask = traj_masks[:, adix]
-        type_traj = self._get_action_from_traj(traj, sample_rate, init_speed)
+        actions_from_traj, type_traj = self._get_action_from_traj(traj, sample_rate, init_speed)
         for i in range(step):
           actions += action_func(traj_mask[i+1], degrees[i], speeds[i], accels[i])
         self.actor_dict[adix]['action'] = actions
@@ -714,7 +742,6 @@ class AttrIndDescription(InitDescription):
       results.append(np.array(act_text)[None, :])
       type_id = [attr_dict['traj_type']]
       traj_type.append(np.array(type_id)[None, :])
-
     results = np.float32(np.concatenate(results, axis=0))
     traj_type = np.int64(np.concatenate(traj_type, axis=0))
     if self.flatten:

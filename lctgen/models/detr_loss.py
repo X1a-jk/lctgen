@@ -112,10 +112,9 @@ class SetCriterion(nn.Module):
                 losses['background_error'] = 100 - accuracy(bg_logits, bg_target)[0]
         return losses
     
-    def _compute_motion_loss(self, src_motion, src_probs, target_motion, target_motion_mask, loss_func, motion_attrs, traj_type):
+    def _compute_motion_loss(self, src_motion, src_probs, target_motion, target_motion_mask, loss_func, motion_attrs):
         pred_other_attr = self.motion_cfg.PRED_HEADING_VEL
-        type_frequency = [0.42270312, 0.50473542, 0.02286027, 0.020658, 0.01507475, 0.01396844] #stop, straigt, left-turn, right-turn, left-change-lane, right-change-lane
-        weight_frequency = [1.0 / t for t in type_frequency]
+
         loss_attr = []
         motion_attr_loss = {'motion_pos': []}
         if pred_other_attr:
@@ -129,7 +128,7 @@ class SetCriterion(nn.Module):
         if src_probs is None:
             src_probs = [None] * len(src_motion)
         b_idx = 0
-        for src, src_prob, tgt, mask, traj in zip(src_motion, src_probs, target_motion, target_motion_mask, traj_type):
+        for src, src_prob, tgt, mask in zip(src_motion, src_probs, target_motion, target_motion_mask):
             if self.motion_cfg.PRED_MODE == 'mlp':
                 if tgt.shape[0] > 0 and mask.shape[0] > 0:
                     loss_attr.append(loss_func(src[mask], tgt[mask]))
@@ -156,8 +155,8 @@ class SetCriterion(nn.Module):
                         dist = MSE(tgt_end, src_end).mean(-1)
                         dists.append(dist)
                     dists = torch.stack(dists, dim=0)
-                    # min_index = torch.argmin(dists, dim=-1)
-                    min_index = traj.flatten()
+                    min_index = torch.argmin(dists, dim=-1)
+
                     k_mask = mask.unsqueeze(1).repeat(1, K, 1, 1)
 
                     pos_loss = MSE(tgt_gt, src)
@@ -167,14 +166,10 @@ class SetCriterion(nn.Module):
                     # compute mean mse based on k_mask
                     pos_loss = pos_loss.sum(-1).sum(-1) / (k_mask.sum(-1).sum(-1) + 1e-6)
                     
-                    for rel_idx in range(pos_loss.shape[0]):
-                        rel_type = traj[rel_idx, 0].cpu().int()
-                        pos_loss[rel_idx, rel_type] *= weight_frequency[rel_type]
-                    
                     pos_loss = torch.gather(pos_loss, dim=1, index=min_index.unsqueeze(-1)).mean()
-                    pos_loss *= 0.01
+
                     cls_loss = CLS(src_prob, min_index) * self.motion_cfg.CLS_WEIGHT
-                    cls_loss *= 0.01
+
                     motion_loss = pos_loss + cls_loss
                     motion_attr_loss['motion_pos'].append(pos_loss + cls_loss)
 
@@ -187,21 +182,11 @@ class SetCriterion(nn.Module):
                         velo_loss = MSE(tgt_vel, src_vel)
                         velo_loss[~k_mask] *= 0
                         velo_loss = velo_loss.sum(-1).sum(-1) / (k_mask.sum(-1).sum(-1) + 1e-6)
-                        
-                        for rel_idx in range(velo_loss.shape[0]):
-                            rel_type = traj[rel_idx, 0].cpu().int()
-                            velo_loss[rel_idx, rel_type] *= weight_frequency[rel_type]
-                        
                         velo_loss = torch.gather(velo_loss, dim=1, index=min_index.unsqueeze(-1)).mean()
-                        velo_loss *= 0.1
+
                         heading_loss = L1(tgt_heading, src_heading)
                         heading_loss[~k_mask[...,:1]] *= 0
                         heading_loss = heading_loss.sum(-1).sum(-1) / (k_mask[...,:1].sum(-1).sum(-1) + 1e-6)
-                        
-                        for rel_idx in range(heading_loss.shape[0]):
-                            rel_type = traj[rel_idx, 0].cpu().int()
-                            heading_loss[rel_idx, rel_type] *= weight_frequency[rel_type]
-                        
                         heading_loss = torch.gather(heading_loss, dim=1, index=min_index.unsqueeze(-1)).mean()
                     
                         motion_loss += velo_loss + heading_loss * 10.0
@@ -226,7 +211,7 @@ class SetCriterion(nn.Module):
         """
         attributes = ['speed', 'pos', 'vel_heading', 'bbox', 'heading']
         targets = data['targets']
-        traj_type = data['traj_type']
+
         if self.motion_cfg.ENABLE:
             attributes.append('motion')
 
@@ -255,7 +240,7 @@ class SetCriterion(nn.Module):
             else:
                 src_attrs = [outputs[f'pred_{attr}'][i][indices[i][0]] for i in range(len(indices))]
                 target_attrs = [targets[i][attr][indices[i][1]] for i in range(len(indices))]
-                gt_type = [traj_type[i][indices[i][0]] for i in range(len(indices))]
+
                 if attr == 'motion':
                     masks = [targets[i]['motion_mask'][indices[i][1]] for i in range(len(indices))]
                     if self.motion_cfg.PRED_MODE == 'mlp':
@@ -279,7 +264,7 @@ class SetCriterion(nn.Module):
                     loss_func = MSE
 
                 if attr == 'motion':
-                    loss_attr, loss_motion = self._compute_motion_loss(src_attrs, src_probs, target_attrs, masks, loss_func, motion_attrs, gt_type)
+                    loss_attr, loss_motion = self._compute_motion_loss(src_attrs, src_probs, target_attrs, masks, loss_func, motion_attrs)
                 else:
                     loss_attr = [loss_func(src, tgt) if len(tgt) > 0 else [] for src, tgt in zip(src_attrs, target_attrs)]
 
@@ -303,7 +288,7 @@ class SetCriterion(nn.Module):
                     else:
                         mean_value = torch.stack(motion_loss).mean()
                         losses[motion_attr] = mean_value
-        # print(losses)
+            
         return losses
 
     def loss_heatmap(self, outputs, data, indices, num_boxes, log=True):

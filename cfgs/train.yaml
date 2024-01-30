@@ -107,8 +107,9 @@ MODEL:
       ATTR_QUERY:
         POS_ENCODING_DIM: 256
 
-LOAD_CHECKPOINT_MODEL: false
-LOAD_CHECKPOINT_TRAINER: false
+LOAD_CHECKPOINT_MODEL: False
+LOAD_CHECKPOINT_PATH: /GPFS/data/xiajunkai/lctgen_result/lctgen/train/lctgen_attr_ind_motion/w4bn7i63/checkpoints/epoch=14-step=8160.ckpt
+LOAD_CHECKPOINT_TRAINER: False
 
 TEST:
   BATCH_SIZE: 16

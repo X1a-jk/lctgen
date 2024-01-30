@@ -44,7 +44,7 @@ EXPERIMENT_DIR: lctgen
 EXPERIMENT_NAME: inference
 
 LOAD_CHECKPOINT_MODEL: true
-LOAD_CHECKPOINT_PATH: /GPFS/data/xiajunkai/lctgen_result/lctgen/train/lctgen_attr_ind_motion/ffoaa4xt/checkpoints/last.ckpt
+LOAD_CHECKPOINT_PATH: /GPFS/data/xiajunkai/lctgen_result/lctgen/train/lctgen_attr_ind_motion/ffoaa4xt/checkpoints/epoch=79-step=90640.ckpt
 LOAD_CHECKPOINT_TRAINER: true
 
 LOSS:

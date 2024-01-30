@@ -1,0 +1,33 @@
+2024-01-30 15:26:46,937 INFO    MainThread:4171824 [wandb_setup.py:_flush():76] Current SDK version is 0.16.2
+2024-01-30 15:26:46,937 INFO    MainThread:4171824 [wandb_setup.py:_flush():76] Configure stats pid to 4171824
+2024-01-30 15:26:46,937 INFO    MainThread:4171824 [wandb_setup.py:_flush():76] Loading settings from /GPFS/rhome/xiajunkai/.config/wandb/settings
+2024-01-30 15:26:46,937 INFO    MainThread:4171824 [wandb_setup.py:_flush():76] Loading settings from /GPFS/rhome/xiajunkai/lctgen/wandb/settings
+2024-01-30 15:26:46,937 INFO    MainThread:4171824 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2024-01-30 15:26:46,937 INFO    MainThread:4171824 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2024-01-30 15:26:46,937 INFO    MainThread:4171824 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'lctgen/main.py', 'program_abspath': '/GPFS/rhome/xiajunkai/lctgen/lctgen/main.py', 'program': 'lctgen/main.py'}
+2024-01-30 15:26:46,937 INFO    MainThread:4171824 [wandb_init.py:_log_setup():526] Logging user logs to results/lctgen/inference/wandb/run-20240130_152646-a7p7v1fr/logs/debug.log
+2024-01-30 15:26:46,937 INFO    MainThread:4171824 [wandb_init.py:_log_setup():527] Logging internal logs to results/lctgen/inference/wandb/run-20240130_152646-a7p7v1fr/logs/debug-internal.log
+2024-01-30 15:26:46,937 INFO    MainThread:4171824 [wandb_init.py:init():566] calling init triggers
+2024-01-30 15:26:46,938 INFO    MainThread:4171824 [wandb_init.py:init():573] wandb.init called with sweep_config: {}
+config: {}
+2024-01-30 15:26:46,938 INFO    MainThread:4171824 [wandb_init.py:init():616] starting backend
+2024-01-30 15:26:46,938 INFO    MainThread:4171824 [wandb_init.py:init():620] setting up manager
+2024-01-30 15:26:46,939 INFO    MainThread:4171824 [backend.py:_multiprocessing_setup():105] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2024-01-30 15:26:46,941 INFO    MainThread:4171824 [wandb_init.py:init():628] backend started and connected
+2024-01-30 15:26:46,949 INFO    MainThread:4171824 [wandb_init.py:init():720] updated telemetry
+2024-01-30 15:26:47,066 INFO    MainThread:4171824 [wandb_init.py:init():753] communicating run to backend with 90.0 second timeout
+2024-01-30 15:26:48,175 INFO    MainThread:4171824 [wandb_run.py:_on_init():2254] communicating current version
+2024-01-30 15:26:48,530 INFO    MainThread:4171824 [wandb_run.py:_on_init():2263] got version response 
+2024-01-30 15:26:48,530 INFO    MainThread:4171824 [wandb_init.py:init():804] starting run threads in backend
+2024-01-30 15:26:50,645 INFO    MainThread:4171824 [wandb_run.py:_console_start():2233] atexit reg
+2024-01-30 15:26:50,646 INFO    MainThread:4171824 [wandb_run.py:_redirect():2088] redirect: wrap_raw
+2024-01-30 15:26:50,646 INFO    MainThread:4171824 [wandb_run.py:_redirect():2153] Wrapping output streams.
+2024-01-30 15:26:50,646 INFO    MainThread:4171824 [wandb_run.py:_redirect():2178] Redirects installed.
+2024-01-30 15:26:50,647 INFO    MainThread:4171824 [wandb_init.py:init():847] run started, returning control to user process
+2024-01-30 15:37:36,041 INFO    MainThread:4171824 [wandb_run.py:_finish():1962] finishing run xiajk/lctgen_attr_ind_motion/a7p7v1fr
+2024-01-30 15:37:36,041 INFO    MainThread:4171824 [wandb_run.py:_atexit_cleanup():2202] got exitcode: 0
+2024-01-30 15:37:36,041 INFO    MainThread:4171824 [wandb_run.py:_restore():2185] restore
+2024-01-30 15:37:36,042 INFO    MainThread:4171824 [wandb_run.py:_restore():2191] restore done
+2024-01-30 15:37:45,439 INFO    MainThread:4171824 [wandb_run.py:_footer_history_summary_info():3857] rendering history
+2024-01-30 15:37:45,440 INFO    MainThread:4171824 [wandb_run.py:_footer_history_summary_info():3889] rendering summary
+2024-01-30 15:37:45,447 INFO    MainThread:4171824 [wandb_run.py:_footer_sync_info():3816] logging synced files

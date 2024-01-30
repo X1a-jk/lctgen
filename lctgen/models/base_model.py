@@ -84,7 +84,14 @@ class BaseModel(pl.LightningModule):
                 metric_value = self.metrics[mode][metric_name].compute()
                 if type(metric_value) is dict:
                     for subname, subvalue in metric_value.items():
-                        self.log('{}/metric-{}-{}'.format(mode, metric_name, subname), subvalue, on_epoch=on_epoch, on_step=on_step, sync_dist=sync_dist)
+                        if not (type(subvalue) is dict):
+                            self.log('{}/metric-{}-{}'.format(mode, metric_name, subname), subvalue, on_epoch=on_epoch, on_step=on_step, sync_dist=sync_dist)
+                        else:
+                            for ii in subvalue:
+                                if subvalue[ii].cpu().item():
+                                    if np.isnan(subvalue[ii].cpu().item()):
+                                        continue
+                                    self.log('{}/metric-{}-{}-type{}'.format(mode, metric_name, subname, ii), subvalue[ii], on_epoch=on_epoch, on_step=on_step, sync_dist=sync_dist)
                 else:
                     self.log('{}/metric-{}'.format(mode, metric_name), self.metrics[mode][metric_name], on_epoch=on_epoch, on_step=on_step, sync_dist=sync_dist)
             except Exception as e:

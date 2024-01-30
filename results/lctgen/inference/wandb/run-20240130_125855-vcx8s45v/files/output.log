@@ -1,0 +1,255 @@
+Restoring states from the checkpoint path at /GPFS/data/xiajunkai/lctgen_result/lctgen/train/lctgen_attr_ind_motion/ffoaa4xt/checkpoints/epoch=79-step=90640.ckpt
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1,7]
+Loaded model weights from the checkpoint at /GPFS/data/xiajunkai/lctgen_result/lctgen/train/lctgen_attr_ind_motion/ffoaa4xt/checkpoints/epoch=79-step=90640.ckpt
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Testing DataLoader 0: 100%|█████████████████████████████████████████████████████████████████████████████████████████| 168/168 [27:23<00:00,  0.10it/s]
+TEST Profiler Report
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|  Action                                                                                                                                                              	|  Mean duration (s)	|  Num calls      	|  Total time (s) 	|  Percentage %   	|
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|  Total                                                                                                                                                               	|  -              	|  2725           	|  1673.8         	|  100 %          	|
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|  [Strategy]DDPStrategy.test_step                                                                                                                                     	|  9.7583         	|  168            	|  1639.4         	|  97.944         	|
+|  [_EvaluationLoop].test_next                                                                                                                                         	|  0.025099       	|  168            	|  4.2167         	|  0.25192        	|
+|  [Strategy]DDPStrategy.batch_to_device                                                                                                                               	|  0.0081688      	|  168            	|  1.3724         	|  0.081991       	|
+|  [LightningModule]LCTGen.transfer_batch_to_device                                                                                                                    	|  0.0079415      	|  168            	|  1.3342         	|  0.079709       	|
+|  [Callback]TQDMProgressBar.on_test_batch_end                                                                                                                         	|  0.0015566      	|  168            	|  0.26152        	|  0.015624       	|
+|  [Callback]ModelCheckpoint{'monitor': 'val/full_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.setup              	|  0.0043332      	|  1              	|  0.0043332      	|  0.00025888     	|
+|  [Callback]TQDMProgressBar.on_test_batch_start                                                                                                                       	|  1.8104e-05     	|  168            	|  0.0030414      	|  0.00018171     	|
+|  [Callback]TQDMProgressBar.on_test_start                                                                                                                             	|  0.0022485      	|  1              	|  0.0022485      	|  0.00013433     	|
+|  [Callback]LearningRateMonitor.on_test_batch_end                                                                                                                     	|  8.8321e-06     	|  168            	|  0.0014838      	|  8.8648e-05     	|
+|  [Callback]ModelSummary.on_test_batch_end                                                                                                                            	|  8.7014e-06     	|  168            	|  0.0014618      	|  8.7336e-05     	|
+|  [LightningModule]LCTGen.on_before_batch_transfer                                                                                                                    	|  8.1305e-06     	|  168            	|  0.0013659      	|  8.1606e-05     	|
+|  [LightningModule]LCTGen.on_test_model_eval                                                                                                                          	|  0.0012393      	|  1              	|  0.0012393      	|  7.4041e-05     	|
+|  [LightningModule]LCTGen.on_after_batch_transfer                                                                                                                     	|  5.6996e-06     	|  168            	|  0.00095753     	|  5.7206e-05     	|
+|  [LightningModule]LCTGen.on_test_batch_end                                                                                                                           	|  5.036e-06      	|  168            	|  0.00084605     	|  5.0546e-05     	|
+|  [LightningModule]LCTGen.on_test_model_train                                                                                                                         	|  0.00082505     	|  1              	|  0.00082505     	|  4.9292e-05     	|
+|  [LightningModule]LCTGen.on_test_batch_start                                                                                                                         	|  4.3488e-06     	|  168            	|  0.0007306      	|  4.3649e-05     	|
+|  [Callback]LearningRateMonitor.on_test_batch_start                                                                                                                   	|  3.7527e-06     	|  168            	|  0.00063045     	|  3.7666e-05     	|
+|  [Callback]TQDMProgressBar.on_test_end                                                                                                                               	|  0.00054329     	|  1              	|  0.00054329     	|  3.2459e-05     	|
+|  [Callback]ModelCheckpoint{'monitor': 'val/full_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_test_batch_end  	|  1.9319e-06     	|  168            	|  0.00032456     	|  1.939e-05      	|
+|  [Callback]ModelSummary.on_test_batch_start                                                                                                                          	|  1.8697e-06     	|  168            	|  0.00031412     	|  1.8767e-05     	|
+|  [Callback]ModelCheckpoint{'monitor': 'val/full_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_test_batch_start	|  1.781e-06      	|  168            	|  0.0002992      	|  1.7875e-05     	|
+|  [Callback]TQDMProgressBar.setup                                                                                                                                     	|  1.7965e-05     	|  1              	|  1.7965e-05     	|  1.0733e-06     	|
+|  [LightningModule]LCTGen.on_load_checkpoint                                                                                                                          	|  1.7666e-05     	|  1              	|  1.7666e-05     	|  1.0554e-06     	|
+|  [Callback]LearningRateMonitor.setup                                                                                                                                 	|  1.137e-05      	|  1              	|  1.137e-05      	|  6.7929e-07     	|
+|  [LightningModule]LCTGen.configure_callbacks                                                                                                                         	|  1.081e-05      	|  1              	|  1.081e-05      	|  6.4583e-07     	|
+|  [LightningModule]LCTGen.setup                                                                                                                                       	|  9.9289e-06     	|  1              	|  9.9289e-06     	|  5.932e-07      	|
+|  [Callback]LearningRateMonitor.on_test_epoch_end                                                                                                                     	|  9.591e-06      	|  1              	|  9.591e-06      	|  5.73e-07       	|
+|  [Callback]LearningRateMonitor.teardown                                                                                                                              	|  7.552e-06      	|  1              	|  7.552e-06      	|  4.5119e-07     	|
+|  [Callback]LearningRateMonitor.on_test_start                                                                                                                         	|  6.5441e-06     	|  1              	|  6.5441e-06     	|  3.9097e-07     	|
+|  [Callback]ModelSummary.on_test_start                                                                                                                                	|  4.86e-06       	|  1              	|  4.86e-06       	|  2.9036e-07     	|
+|  [Callback]ModelSummary.on_test_end                                                                                                                                  	|  4.5099e-06     	|  1              	|  4.5099e-06     	|  2.6944e-07     	|
+|  [LightningModule]LCTGen.on_test_epoch_end                                                                                                                           	|  4.1301e-06     	|  1              	|  4.1301e-06     	|  2.4675e-07     	|
+|  [Callback]LearningRateMonitor.on_test_end                                                                                                                           	|  3.783e-06      	|  1              	|  3.783e-06      	|  2.2601e-07     	|
+|  [Strategy]DDPStrategy.on_test_start                                                                                                                                 	|  3.467e-06      	|  1              	|  3.467e-06      	|  2.0713e-07     	|
+|  [LightningModule]LCTGen.teardown                                                                                                                                    	|  3.1979e-06     	|  1              	|  3.1979e-06     	|  1.9106e-07     	|
+|  [LightningModule]LCTGen.prepare_data                                                                                                                                	|  3.0961e-06     	|  1              	|  3.0961e-06     	|  1.8497e-07     	|
+|  [Callback]TQDMProgressBar.teardown                                                                                                                                  	|  2.639e-06      	|  1              	|  2.639e-06      	|  1.5767e-07     	|
+|  [Strategy]DDPStrategy.on_test_end                                                                                                                                   	|  2.527e-06      	|  1              	|  2.527e-06      	|  1.5097e-07     	|
+|  [Callback]ModelCheckpoint{'monitor': 'val/full_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.teardown           	|  2.1079e-06     	|  1              	|  2.1079e-06     	|  1.2594e-07     	|
+|  [Callback]ModelSummary.teardown                                                                                                                                     	|  1.9739e-06     	|  1              	|  1.9739e-06     	|  1.1793e-07     	|
+|  [Callback]ModelSummary.setup                                                                                                                                        	|  1.6621e-06     	|  1              	|  1.6621e-06     	|  9.9298e-08     	|
+|  [Callback]LearningRateMonitor.on_test_epoch_start                                                                                                                   	|  1.626e-06      	|  1              	|  1.626e-06      	|  9.7142e-08     	|
+|  [Callback]ModelCheckpoint{'monitor': 'val/full_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_test_start      	|  1.5331e-06     	|  1              	|  1.5331e-06     	|  9.1592e-08     	|
+|  [Callback]ModelCheckpoint{'monitor': 'val/full_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_test_end        	|  1.498e-06      	|  1              	|  1.498e-06      	|  8.9498e-08     	|
+|  [LightningModule]LCTGen.on_test_end                                                                                                                                 	|  1.393e-06      	|  1              	|  1.393e-06      	|  8.3225e-08     	|
+|  [Callback]TQDMProgressBar.on_test_epoch_end                                                                                                                         	|  1.366e-06      	|  1              	|  1.366e-06      	|  8.1611e-08     	|
+|  [Callback]ModelCheckpoint{'monitor': 'val/full_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_test_epoch_start	|  1.1771e-06     	|  1              	|  1.1771e-06     	|  7.0323e-08     	|
+|  [Callback]ModelSummary.on_test_epoch_end                                                                                                                            	|  1.152e-06      	|  1              	|  1.152e-06      	|  6.8828e-08     	|
+|  [Callback]ModelCheckpoint{'monitor': 'val/full_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_test_epoch_end  	|  1.136e-06      	|  1              	|  1.136e-06      	|  6.7868e-08     	|
+|  [Callback]TQDMProgressBar.on_test_epoch_start                                                                                                                       	|  1.072e-06      	|  1              	|  1.072e-06      	|  6.4043e-08     	|
+|  [LightningModule]LCTGen.on_test_start                                                                                                                               	|  1.0689e-06     	|  1              	|  1.0689e-06     	|  6.3862e-08     	|
+|  [Callback]ModelSummary.on_test_epoch_start                                                                                                                          	|  1.068e-06      	|  1              	|  1.068e-06      	|  6.3806e-08     	|
+|  [LightningModule]LCTGen.on_test_epoch_start                                                                                                                         	|  7.1991e-07     	|  1              	|  7.1991e-07     	|  4.301e-08      	|
+Testing DataLoader 0: 100%|█████████████████████████████████████████████████████████████████████████████████████████| 168/168 [27:24<00:00,  0.10it/s]
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric               DataLoader 0
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      test/full_loss         -1.1482365131378174
+ test/metric-MMD-heading     0.13031452894210815
+ test/metric-MMD-position    0.07740198820829391
+   test/metric-MMD-size      0.12992265820503235
+  test/metric-MMD-speed       0.0820477083325386
+test/metric-traj_match-ade    3.2524936199188232
+test/metric-traj_match-fde    7.319469928741455
+test/metric-traj_match-scr   0.11067906022071838
+   test/text_attributes       -3.272120714187622
+      test/text_bbox         -1.6922053098678589
+  test/text_class_error       70.81105041503906
+    test/text_heading        -1.9976897239685059
+     test/text_labels         2.1238839626312256
+     test/text_motion         1.8085808753967285
+ test/text_motion_heading     0.2553795278072357
+   test/text_motion_pos       1.0688841342926025
+   test/text_motion_vel      0.48431721329689026
+      test/text_pos          -0.9808017611503601
+     test/text_speed          1.1921024322509766
+  test/text_vel_heading      0.025616010650992393
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

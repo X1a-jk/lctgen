@@ -129,12 +129,26 @@ class MMD_All(Metric):
 @registry.register_metric(name='traj_match')
 class TrajMatch(Metric):
   def __init__(self, cfg):
-    super().__init__(full_state_update=True)
+    # super().__init__(full_state_update=True)
+    super().__init__()
     self.traj_metrics = {}
-    self.traj_metrics['ade'] = MeanMetric()
-    self.traj_metrics['fde'] = MeanMetric()
     self.traj_metrics['scr'] = MeanMetric()
-  
+    self.traj_metrics['ade'] = {}
+    self.traj_metrics['fde'] = {}
+    self.K = 6
+    for i in range(self.K):
+        self.traj_metrics['ade'][i] = MeanMetric()
+        self.traj_metrics['fde'][i] = MeanMetric()
+
+    '''
+    for i in range(self.K):
+        metrics_temp = {}
+        metrics_temp['ade'] = MeanMetric()
+        metrics_temp['fde'] = MeanMetric()
+        metrics_temp['scr'] = MeanMetric()
+        self.traj_metrics.append(metrics_temp)
+    '''
+
   def _position_match(self, real_agents, sim_agents):
     real_positions = np.array([agent.position[0] for agent in real_agents])
     sim_positions = np.array([agent.position[0] for agent in sim_agents])
@@ -200,6 +214,7 @@ class TrajMatch(Metric):
         real_traj = data['traj'][i][:, data['agent_mask'][i]][:, real_idx][1:].cpu()
         sim_traj = torch.tensor(model_output_scene[i]['rel_traj'][:, sim_idx][1:]).cpu()
 
+        real_type = data['traj_type'][i][data['agent_mask'][i]][real_idx].cpu().item()
         real_mask = motion_mask[:, real_idx][1:].cpu()
 
         if not real_mask.any():
@@ -211,19 +226,29 @@ class TrajMatch(Metric):
         ade = ade_all[real_mask].mean()
         fde = MSE(real_traj[last_true_idx], sim_traj[last_true_idx]).sum(dim=-1).sqrt()
 
-        self.traj_metrics['ade'].update(ade)
-        self.traj_metrics['fde'].update(fde)
-      
+        self.traj_metrics['ade'][int(real_type)].update(ade)
+        self.traj_metrics['fde'][int(real_type)].update(fde)
       scr = self._compute_scr(model_output_scene[i])
       self.traj_metrics['scr'].update(scr)
   
   def compute(self):
     results = {}
     for attr in self.traj_metrics:
-      self.traj_metrics[attr].to(self.device)
-      results[attr] = self.traj_metrics[attr].compute()
+        if not(type(self.traj_metrics[attr]) is dict):
+            self.traj_metrics[attr].to(self.device)
+            results[attr] = self.traj_metrics[attr].compute()
+        else:
+            results[attr] = {}
+            for i in self.traj_metrics[attr]:
+                it = self.traj_metrics[attr][i]
+                it.to(self.device)
+                results[attr][i] = it.compute()
     return results
 
   def reset(self):
-    for attr in self.traj_metrics:
-      self.traj_metrics[attr].reset()
+        for attr in self.traj_metrics:
+            if not(type(self.traj_metrics[attr]) is dict):
+                self.traj_metrics[attr].reset()
+            else:
+                for i in self.traj_metrics[attr]:
+                    self.traj_metrics[attr][i].reset()

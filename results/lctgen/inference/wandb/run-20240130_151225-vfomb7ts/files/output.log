@@ -1,0 +1,113 @@
+Restoring states from the checkpoint path at checkpoints/example.ckpt
+Lightning automatically upgraded your loaded checkpoint from v1.9.3 to v2.1.3. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint checkpoints/example.ckpt`
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [4,5,6,7]
+Loaded model weights from the checkpoint at checkpoints/example.ckpt
+Testing DataLoader 0:   0%|                                                                                                   | 0/157 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "lctgen/main.py", line 89, in <module>
+    main()
+  File "lctgen/main.py", line 48, in main
+    run_exp(**vars(args))
+  File "lctgen/main.py", line 86, in run_exp
+    execute_exp(config, run_type)
+  File "lctgen/main.py", line 66, in execute_exp
+    trainer.eval()
+  File "/GPFS/rhome/xiajunkai/lctgen/lctgen/trainer.py", line 194, in eval
+    self.trainer.test(model=self.lightning_model, dataloaders=self.data_loaders['test'], ckpt_path=ckpt_path)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 754, in test
+    return call._call_and_handle_interrupt(
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/trainer/call.py", line 43, in _call_and_handle_interrupt
+    return trainer.strategy.launcher.launch(trainer_fn, *args, trainer=trainer, **kwargs)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/strategies/launchers/subprocess_script.py", line 102, in launch
+    return function(*args, **kwargs)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 794, in _test_impl
+    results = self._run(model, ckpt_path=ckpt_path)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 989, in _run
+    results = self._run_stage()
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 1028, in _run_stage
+    return self._evaluation_loop.run()
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/loops/utilities.py", line 182, in _decorator
+    return loop_run(self, *args, **kwargs)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 134, in run
+    self._evaluation_step(batch, batch_idx, dataloader_idx, dataloader_iter)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 391, in _evaluation_step
+    output = call._call_strategy_hook(trainer, hook_name, *step_args)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/trainer/call.py", line 309, in _call_strategy_hook
+    output = fn(*args, **kwargs)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/strategies/strategy.py", line 416, in test_step
+    return self.lightning_module.test_step(*args, **kwargs)
+  File "/GPFS/rhome/xiajunkai/lctgen/lctgen/models/base_model.py", line 110, in test_step
+    return self._batch_forward(batch, 'test', batch_idx)
+  File "/GPFS/rhome/xiajunkai/lctgen/lctgen/models/lctgen.py", line 130, in _batch_forward
+    result = super()._batch_forward(batch, mode, batch_idx)
+  File "/GPFS/rhome/xiajunkai/lctgen/lctgen/models/base_model.py", line 60, in _batch_forward
+    model_output = self.forward(batch, mode)
+  File "/GPFS/rhome/xiajunkai/lctgen/lctgen/models/lctgen.py", line 140, in forward
+    result['text_decode_output'] = self.trafficgen_model(batch)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1130, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/GPFS/rhome/xiajunkai/lctgen/lctgen/models/detr_model.py", line 204, in forward
+    attr_query_encoding = self.query_embedding_layer(attr_query_encoding)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1130, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/torch/nn/modules/container.py", line 139, in forward
+    input = module(input)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1130, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/torch/nn/modules/linear.py", line 114, in forward
+    return F.linear(input, self.weight, self.bias)
+RuntimeError: mat1 and mat2 shapes cannot be multiplied (128x252 and 256x512)
+Traceback (most recent call last):
+  File "lctgen/main.py", line 89, in <module>
+    main()
+  File "lctgen/main.py", line 48, in main
+    run_exp(**vars(args))
+  File "lctgen/main.py", line 86, in run_exp
+    execute_exp(config, run_type)
+  File "lctgen/main.py", line 66, in execute_exp
+    trainer.eval()
+  File "/GPFS/rhome/xiajunkai/lctgen/lctgen/trainer.py", line 194, in eval
+    self.trainer.test(model=self.lightning_model, dataloaders=self.data_loaders['test'], ckpt_path=ckpt_path)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 754, in test
+    return call._call_and_handle_interrupt(
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/trainer/call.py", line 43, in _call_and_handle_interrupt
+    return trainer.strategy.launcher.launch(trainer_fn, *args, trainer=trainer, **kwargs)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/strategies/launchers/subprocess_script.py", line 102, in launch
+    return function(*args, **kwargs)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 794, in _test_impl
+    results = self._run(model, ckpt_path=ckpt_path)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 989, in _run
+    results = self._run_stage()
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 1028, in _run_stage
+    return self._evaluation_loop.run()
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/loops/utilities.py", line 182, in _decorator
+    return loop_run(self, *args, **kwargs)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 134, in run
+    self._evaluation_step(batch, batch_idx, dataloader_idx, dataloader_iter)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 391, in _evaluation_step
+    output = call._call_strategy_hook(trainer, hook_name, *step_args)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/trainer/call.py", line 309, in _call_strategy_hook
+    output = fn(*args, **kwargs)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/pytorch_lightning/strategies/strategy.py", line 416, in test_step
+    return self.lightning_module.test_step(*args, **kwargs)
+  File "/GPFS/rhome/xiajunkai/lctgen/lctgen/models/base_model.py", line 110, in test_step
+    return self._batch_forward(batch, 'test', batch_idx)
+  File "/GPFS/rhome/xiajunkai/lctgen/lctgen/models/lctgen.py", line 130, in _batch_forward
+    result = super()._batch_forward(batch, mode, batch_idx)
+  File "/GPFS/rhome/xiajunkai/lctgen/lctgen/models/base_model.py", line 60, in _batch_forward
+    model_output = self.forward(batch, mode)
+  File "/GPFS/rhome/xiajunkai/lctgen/lctgen/models/lctgen.py", line 140, in forward
+    result['text_decode_output'] = self.trafficgen_model(batch)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1130, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/GPFS/rhome/xiajunkai/lctgen/lctgen/models/detr_model.py", line 204, in forward
+    attr_query_encoding = self.query_embedding_layer(attr_query_encoding)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1130, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/torch/nn/modules/container.py", line 139, in forward
+    input = module(input)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1130, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/GPFS/rhome/xiajunkai/miniconda3/envs/lctgen/lib/python3.8/site-packages/torch/nn/modules/linear.py", line 114, in forward
+    return F.linear(input, self.weight, self.bias)
+RuntimeError: mat1 and mat2 shapes cannot be multiplied (128x252 and 256x512)

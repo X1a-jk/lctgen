@@ -1,5 +1,5 @@
 from lctgen.models.utils import visualize_input_seq, visualize_map
-
+import pickle
 import torch
 from torch.utils.data import DataLoader
 
@@ -9,14 +9,13 @@ from lctgen.datasets.utils import fc_collate_fn
 from lctgen.config.default import get_config
 from lctgen.core.registry import registry
 from lctgen.models.utils import visualize_input_seq, visualize_output_seq
-from lctgen.datasets.utils import traj_action_sampler
 from trafficgen.utils.typedef import *
 import copy
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-cfg_file = './cfgs/train.yaml'
+cfg_file = './cfgs/0.yaml'
 cfg = get_config(cfg_file)
 '''
 model_cls = registry.get_model(cfg.MODEL.TYPE)
@@ -50,15 +49,17 @@ for i, batch in enumerate(loader):
     # print("real traj: ")
     # print(data["gt_pos"][0][:, data['agent_mask'][0], :][:, 0, :])
     agents = data['agent']
-    print(data['text'])
     veh_type = data['traj_type'][:, data['agent_mask'][0], :].cpu().tolist()[0]
-    
+    #print(data['text'])
+    # print(data['traj_type'])
+    #print(data['nei_text'])
+
     file_id = batch['file'][0].split(".")[0]
     file_name = "./map/" + file_id+'.png'
     gif_name = './map/' + file_id+'.gif'
-    # demo_fig = visualize_input_seq(data, save=True, filename=file_name)
-    # demo_gif = visualize_output_seq(data, data)
-    # demo_gif[0].save(gif_name, save_all=True, append_images=demo_gif[1:])
+    demo_fig = visualize_input_seq(data, save=True, filename=file_name)
+    #demo_gif = visualize_output_seq(data, data)
+    #demo_gif[0].save(gif_name, save_all=True, append_images=demo_gif[1:])
     # break
     '''
     if i % 100 == 0:

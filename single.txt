@@ -11,13 +11,8 @@ Event:
 - E3: V3 is in the right of ego car (index 3) and has the same direction as the ego vehicle, so all dimension of the vector is set to 3, representing the position "right". Since the scene involves lane changing, the relative distance is close between each vehicle and ego car. So the first vector is set to 1 since it is closer than V2.
 
 Actor Vector:
-- 'V1': [-1, 0, 0, 5, 5, 5, 5, 5, 5, 1]
-- 'V2': [4, 1, 0, 5, 5, 5, 5, 5, 5, 5]
-- 'V3': [2, 1, 0, 5, 5, 5, 5, 5, 5, 4]
+- 'V1': [0, 0, 4, 4, 4, 4, 3, 3, 1]
 Map Vector:
-- 'Map': [3, 0, 0, 0, -1, 2]
+- 'Map': [3, 3, 0, 0, -1, 2]
 Event Vector:
-- ‘E1’: [0, 0, 0, 0, 0] | [0, 0, 0, 0, 0]
-- 'E2': [1, 1, 1, 1, 1] | [4, 4, 4, 4, 4]
-- 'E3': [1, 1, 1, 1, 1] | [1, 1, 1, 1, 1]
-
+- ‘E1’: [0, 0, 0, 0, 0]|[0, 0, 0, 0, 0]

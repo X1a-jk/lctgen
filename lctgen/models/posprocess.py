@@ -26,8 +26,8 @@ class PostProcess(nn.Module):
         if self.cfg.MODEL.MOTION.PRED_MODE == 'mlp':
           a_motion = motion[idx]
         elif self.cfg.MODEL.MOTION.PRED_MODE in ['mlp_gmm', 'mtf']:
-          m_idx = np.argmax(motion_prob[idx])
-          # m_idx = type_traj[idx][0]
+          #m_idx = np.argmax(motion_prob[idx])
+          m_idx = type_traj[idx][0]
           a_motion = motion[idx][m_idx]
         traj = a_motion
         rel_traj = np.concatenate([np.zeros((1, 2)), traj], axis=0)
@@ -46,8 +46,8 @@ class PostProcess(nn.Module):
       headings = []
       vels = []
       for idx in range(len(output['agent'])):
-        m_idx = np.argmax(motion_prob[idx])
-        # m_idx = type_traj[idx][0]
+        #m_idx = np.argmax(motion_prob[idx])
+        m_idx = type_traj[idx][0]
         a_heading = future_heading[idx][m_idx]
         a_vel = future_vel[idx][m_idx]
 
@@ -133,6 +133,7 @@ class PostProcess(nn.Module):
 
         vec = center[vec_idx]
         agent_num = vec.shape[0]
+
         if agent_num == 0:
           output['agent'] = []
           output['agent_mask'] = []
@@ -142,7 +143,6 @@ class PostProcess(nn.Module):
           output['traj'] = []
           output['rel_traj'] = []
           output['traj_type'] = []
-
           outputs.append(output)
           continue
         
@@ -184,12 +184,10 @@ class PostProcess(nn.Module):
             if not intersect:
               non_collide.append(agent_i) 
               shapes.append(poly)
-
-        
           agent_list = [agent_list[j] for j in non_collide]
           query_idx = torch.stack([query_idx[j] for j in non_collide])
           vec_idx = torch.stack([vec_idx[j] for j in non_collide])
-        
+
         # get prob for each existing query
         probs = []
         for q_idx in query_idx:
@@ -205,10 +203,12 @@ class PostProcess(nn.Module):
         output['agent_mask'] = torch.ones(len(output['agent']), dtype=torch.bool)
         output['probs'] = probs
         output['type_traj'] = preds['type_traj']
+        
         if self.use_background:
           output['pred_logits'] = pred_logits[i, :, :-1].clone()
         else:
           output['pred_logits'] = pred_logits[i, :].clone()
+
         if pred_motion:
           motion = preds['pred_motion'][i, query_idx].cpu().numpy()
           type_traj = preds['type_traj'][i, query_idx].cpu().numpy()
@@ -221,6 +221,7 @@ class PostProcess(nn.Module):
             motion_prob = None
           heading = np.concatenate([agent.heading for agent in agent_list])
           output['traj'], output['rel_traj'] = self._convert_motion_pred_to_traj(output, motion, motion_prob, heading, type_traj)
+
           # TODO: add postprocessing for future heading and velocity
           if 'pred_future_heading' in preds:
             future_heading = preds['pred_future_heading'][i, query_idx].cpu().numpy()

@@ -15,7 +15,6 @@ DATASET:
     VAL: demo.txt
     TRAIN: demo.txt
   TEXT:
-    MAX_TIME_STEP: 50
     TYPE: attr_ind
     ALL_CLASSES:
     - 'pos'
@@ -23,14 +22,12 @@ DATASET:
     - 'direction'
     - 'speed'
     - 'action'
-    - 'full_traj'
     CLASS:
     - 'pos'
     - 'distance'
     - 'direction'
     - 'speed'
     - 'action'
-      # - 'full_traj'
     NEGATIVE_SAMPLE_NUM: 10
     COUNT_BASE: 1
     DISTANCE_BASE: 20
@@ -46,7 +43,7 @@ EXPERIMENT_DIR: lctgen
 EXPERIMENT_NAME: demo_inference
 
 LOAD_CHECKPOINT_MODEL: true
-LOAD_CHECKPOINT_PATH: 'results/lctgen/train/lctgen_attr_ind_motion/54af8myp/checkpoints/epoch=99-step=107391.ckpt'
+LOAD_CHECKPOINT_PATH: 'checkpoints/example.ckpt'
 LOAD_CHECKPOINT_TRAINER: true
 
 LOSS:
@@ -111,7 +108,7 @@ MODEL:
         ATTR_GMM_K: 5
   
       ATTR_QUERY:
-        POS_ENCODING_DIM: 252
+        POS_ENCODING_DIM: 256
 
     NORMALIZE: false
     PRETRAINED: false

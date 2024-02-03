@@ -54,14 +54,15 @@ def visualize_map(data):
 def visualize_input_seq(data, agents = None, traj=None, sort_agent=True, clip_size=True, save=False, filename=None):
   MIN_LENGTH = 4.0
   MIN_WIDTH = 1.5
+
   center = data["center"][0].cpu().numpy()
   rest = data["rest"][0].cpu().numpy()
   bound = data["bound"][0].cpu().numpy()
   agent_mask = data["agent_mask"][0].cpu().numpy()
+  
   if agents is None:
     agent = data["agent"][0].cpu().numpy()
     agents = [WaymoAgent(agent[i:i+1]) for i in range(agent.shape[0]) if agent_mask[i]]
-  
   if traj is None:
     traj = data['gt_pos'][0][:, agent_mask].cpu().numpy()
 
@@ -164,9 +165,12 @@ def transform_traj_output_to_waymo_agent(output, fps=10):
   return pred_agents
 
 def draw_frame(t, output_scene, pred_agents, data):
+  '''  
+  frame = Image.fromarray(draw_seq(output_scene['center'], pred_agents[t], traj=output_scene['traj'], other=data['rest'][0], edge=data['bound'][0],save_np=True))
+  '''
   img = draw_seq(output_scene['center'].cpu(), pred_agents[t], traj=output_scene['traj'], \
-          other=data['rest'][0].cpu(), edge=data['bound'][0].cpu(),save_np=True)
-#  img = img.numpy()
+                    other=data['rest'][0].cpu(), edge=data['bound'][0].cpu(),save_np=True)
+  #  img = img.numpy()
   frame = Image.fromarray(img)
   return frame
 
@@ -181,7 +185,8 @@ def visualize_output_seq(data, output, fps=10, pool_num=16):
       image_list.append(frame)
   '''
   for i in range(T):
-      device = "cpu"
-      frame = draw_frame(i, output_scene=output, pred_agents=pred_agents, data=data)
-      image_list.append(frame)
+    device = "cpu"
+    frame = draw_frame(i, output_scene=output, pred_agents=pred_agents, data=data)
+    image_list.append(frame)
+
   return image_list

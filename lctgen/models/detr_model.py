@@ -20,7 +20,7 @@ class DETRAgentQuery(nn.Module):
         self.full_cfg = cfg
         self.hidden_dim = self.model_cfg['hidden_dim']
         self.motion_cfg = cfg.MODEL.MOTION
-        self.head = 8
+
         self._init_encoder()
         self._init_decoder()
 
@@ -71,7 +71,9 @@ class DETRAgentQuery(nn.Module):
         self.query_mask_head = MLP([d_model, mlp_dim*2, mlp_dim])
         self.memory_mask_head = MLP([d_model, mlp_dim*2, mlp_dim])
 
-        # neighbor info encoding
+    
+        #neighbor
+        self.head = 8
         nei_decoder_layer = nn.TransformerDecoderLayer(**layer_cfg)
         self.nei_decoder =  nn.TransformerDecoder(nei_decoder_layer, num_layers=dcfg.NLAYER)
         nei_dim = 10 # modify here
@@ -80,10 +82,10 @@ class DETRAgentQuery(nn.Module):
             nn.ReLU(),
             nn.Linear(d_model, d_model),
         )
-        self.cross_attention = MultiHeadAttention(self.head, d_model)#ScaledDotProductAttention(d_model)        
+        self.cross_attention = MultiHeadAttention(self.head, d_model)#ScaledDotProductAttention(d_model)
+        
         self.neighbor_txt_embedding = PositionalEncoding(d_model)
-
-
+        
     def _init_motion_decoder(self, d_model, dcfg):
         self.m_K = self.motion_cfg.K
         self.m_dim = 2 * self.motion_cfg.STEP
@@ -200,7 +202,7 @@ class DETRAgentQuery(nn.Module):
     def forward(self, data):
         attr_cfg = self.model_cfg.ATTR_QUERY
         pos_enc_dim = attr_cfg.POS_ENCODING_DIM
-        
+        type_traj = data['traj_type']
         # Map Encoder
         b = data['lane_inp'].shape[0]
         device = data['lane_inp'].device
@@ -210,25 +212,20 @@ class DETRAgentQuery(nn.Module):
         line_enc = line_enc[:, :data['center_mask'].shape[1]]
 
         # Agent Query
-        attr_query_input = data['text'][:, :, :-1]
-        # print(attr_query_input[0, 0, :])
-        type_traj = data['traj_type']
+        attr_query_input = data['text']
         attr_dim = attr_query_input.shape[-1]
         attr_query_encoding = pos2posemb(attr_query_input, pos_enc_dim//attr_dim)
-
         attr_query_encoding = self.query_embedding_layer(attr_query_encoding)
         learnable_query_embedding = self.actor_query.repeat(b, 1, 1)
         query_encoding = learnable_query_embedding + attr_query_encoding
 
         # Generative Transformer
         agent_feat = self.decoder(tgt=query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
-
         # Position MLP + Map Mask MLP
         query_mask = self.query_mask_head(agent_feat)
         memory_mask = self.memory_mask_head(line_enc)
-
-        use_neighbor_query, nei_query_input = data["nei_text"]
         
+        use_neighbor_query, nei_query_input = data["nei_text"]
         use_neighbor_feat = True #not (False in use_neighbor_query.cpu().tolist())
         
         if use_neighbor_feat:
@@ -239,7 +236,7 @@ class DETRAgentQuery(nn.Module):
             nei_query_encoding = self.neighbor_txt_embedding(nei_query_encoding)
             nei_feat = self.nei_decoder(tgt=nei_query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
             agent_feat = self.cross_attention(agent_feat, nei_feat, nei_feat)
-        
+            #agent_feat = self.cross_attention(nei_feat, agent_feat, agent_feat)
         pred_logits = torch.einsum('bqk,bmk->bqm', query_mask, memory_mask)
 
         if self.use_background:

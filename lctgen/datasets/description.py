@@ -459,7 +459,7 @@ class AttrIndDescription(InitDescription):
       self.actor_dict[aid] = {}
       for attr in self.TXT_CLASSES:
         if attr == 'action':
-          self.actor_dict[aid][attr] = [self.padding_num] * self.cfg.ACTION_STEP * self.cfg.ACTION_DIM
+          self.actor_dict[aid][attr] = [self.padding_num] * 5 #self.cfg.ACTION_STEP * self.cfg.ACTION_DIM
         elif attr == 'traj_type':
           self.actor_dict[aid][attr] = -2
         else:
@@ -534,16 +534,24 @@ class AttrIndDescription(InitDescription):
   def _get_action_from_traj(self, traj, sample_rate, init_speed):
     TIME_STEP = 5
     MAX_STEPS = 5
+    actions = [1 for i in range(5)] 
+    #stop, straigt, left-turn, right-turn, left-change-lane, right-change-lane
     speed_base = self.cfg.SPEED_BASE
+
     stop_lim = 1.0
     lane_width = 4.0
     ang_lim = 15
+    accl_lim = 5
+    keep_speed_lim = 1
+
+    # print(self.data['file'])
 
     valid_traj, _ = traj.shape
     if valid_traj<=2:
       traj_type = -1
-
-      return traj_type
+      for i in range(len(actions)):
+        actions[i] = int(init_speed // speed_base)
+      return actions, traj_type
     
     pos_init = traj[0]
     pos_final = traj[-1]
@@ -558,11 +566,17 @@ class AttrIndDescription(InitDescription):
     # phase_vel = [np.linalg.norm(pivots[i+1]-pivots[i])/1 for i in range(len(pivots)-1)]    
     phase_vel = [init_speed] + pivots
     
+    '''
+    ini_speed = np.linalg.norm(traj[1] - traj[0]) / 0.1
+    avg_speed = np.linalg.norm(traj[-1]-traj[0]) / 5
+    final_speed = np.linalg.norm(shift_final) / 0.1
+    '''
 
     if np.linalg.norm(pos_final)<stop_lim: # stop during the process
       traj_type = 0
-
-      return  traj_type
+      for i in range(len(actions)):
+        actions[i] = 0
+      return actions, traj_type
 
     if np.abs(y_final)<lane_width:
       traj_type = 1 # straight
@@ -576,9 +590,24 @@ class AttrIndDescription(InitDescription):
             traj_type = 5 # right lc
         else:
             traj_type = 3 # right turn
+    
 
-   
-    return traj_type
+    for j in range(len(actions)):
+        if j >= len(phase_vel):
+            actions[j] = int(phase_vel[-1] / speed_base)
+        else:
+            actions[j] = int(phase_vel[j] / speed_base)
+
+    '''
+    if phase_vel == phase_vel.sort() or phase_vel[-1] - phase_vel[0] >= accl_lim:
+        actions[7] = 1 # acc
+    if phase_vel == phase_vel.sort(reverse=True) or phase_vel[-1] - phase_vel[0] <= -1*accl_lim:
+        actions[8] = 1 # dec
+    
+    if ((np.array(phase_vel)-np.mean(np.array(phase_vel)))<=keep_speed_lim).all():
+        actions[6] = 1 # keep spd
+    '''
+    return actions, traj_type
 
   def _action_cnt(self, agents, agent_lanes, agent_vec_index, file, sorted_idx):
     if len(self.data['agent_mask']) == 1:
@@ -616,24 +645,46 @@ class AttrIndDescription(InitDescription):
         step = len(degrees)
         actions = []
         traj_mask = traj_masks[:, adix]
-        type_traj = self._get_action_from_traj(traj, sample_rate, init_speed)
+        speed_interval, type_traj = self._get_action_from_traj(traj, sample_rate, init_speed)
         for i in range(step):
           actions += action_func(traj_mask[i+1], degrees[i], speeds[i], accels[i])
-        self.actor_dict[adix]['action'] = actions
+        self.actor_dict[adix]['action'] = speed_interval #actions
         self.actor_dict[adix]['traj_type'] = type_traj
       except:
-        self.actor_dict[adix]['action'] = [self.padding_num] * action_step * action_dim
+        self.actor_dict[adix]['action'] = [self.padding_num] * 5 #action_step * action_dim
         self.actor_dict[adix]['traj_type'] = -2
 
   def _pos_cnt(self, agents, agent_lanes, *args):
     # compute the pos value for each agent
     self.actor_dict[0]['pos'] = -1
+      
 
     for aidx, agent in enumerate(agents[1:]):
       rel_pos = agent.position - agents[0].position
       idx_x = 0 if rel_pos[0] > 0 else 1
       idx_y = 0 if rel_pos[1] > 0 else 1
 
+      deg_rel = np.arctan2(rel_pos[1], rel_pos[0])
+
+      if deg_rel > np.pi:
+        deg_rel -= 2 * np.pi
+      elif deg_rel < -1 * np.pi:
+        deg_rel += 2*np.pi
+        
+      if deg_rel < np.pi/9 and deg_rel > -1 * np.pi / 9:
+        ang = 0
+      elif deg_rel <= -1 * np.pi / 9 and deg_rel > -1 * np.pi / 2:
+        ang = 1
+      elif  deg_rel <= -1 * np.pi / 2 and deg_rel > -8 * np.pi/9:
+        ang = 2
+      elif deg_rel >= np.pi/9 and deg_rel < np.pi/2:
+        ang = 5
+      elif deg_rel >= np.pi/2 and deg_rel < 8*np.pi/9:
+        ang = 4
+      else:
+        ang = 3
+
+      '''
       if idx_x == 0 and idx_y == 0:
         value = 0
       elif idx_x == 1 and idx_y == 0:
@@ -642,8 +693,8 @@ class AttrIndDescription(InitDescription):
         value = 2
       else:
         value = 3
-      
-      self.actor_dict[aidx+1]['pos'] = value
+      '''
+      self.actor_dict[aidx+1]['pos'] = ang
       
   def _direction_cnt(self, agents, agent_lanes, *args):
     # compute the direction value for each agent
@@ -704,6 +755,8 @@ class AttrIndDescription(InitDescription):
       act_text = []
       # for categry in categories:
       for category in self.TXT_CLASSES:
+        if category == 'traj_type':
+          continue
         attr_value = attr_dict[category]
         if type(attr_value) is not list:
           attr_value = [attr_value]
@@ -724,7 +777,7 @@ class AttrIndDescription(InitDescription):
   def get_text_dict(self):
     result = {}
     for cls in self.TXT_CLASSES:
-      result[cls] = self.get_category_text([cls], padding=True)
+      result[cls] = self.get_category_text([cls], padding=False)
     return result
 
 class AttrCntDescriptionManual(AttrCntDescription):
@@ -760,7 +813,7 @@ class NeighborCarsDescription(AttrIndDescription):
     SPEEDDOWN_ACCEL = -1.0
     STOP_SPEED = 1.0
     VALID_LIMIT = 100
-    DIS_INTERVAL = 5
+    DIS_INTERVAL = 2.5
 
     def __init__(self, data, cfg):
         self.use_padding = cfg.USE_PADDING
@@ -866,7 +919,7 @@ class NeighborCarsDescription(AttrIndDescription):
         angle_init = ego_heading[0]
         pos_rel = other_pos - ego_pos
         dis_rel = np.linalg.norm(pos_rel)
-        degree_pos_rel = int(np.clip(dis_rel//self.DIS_INTERVAL, a_min=0, a_max=8))
+        degree_pos_rel = int(np.clip(dis_rel/self.DIS_INTERVAL, a_min=0, a_max=8))
         deg_other = np.arctan2(pos_rel[1], pos_rel[0])
         deg_rel = deg_other - ego_heading
         if deg_rel > np.pi:
@@ -890,5 +943,7 @@ class NeighborCarsDescription(AttrIndDescription):
 
     def get_neighbor_text(self):
         return self._get_neighbor_text(*self.packed_data)
-    
+
+
+
 descriptions = {'static': InitDescription, 'attr_cnt': AttrCntDescription, 'attr_cnt_manual': AttrCntDescriptionManual, 'attr_ind': AttrIndDescription,}

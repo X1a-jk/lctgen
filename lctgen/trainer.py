@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger, TensorBoardLogger
-from lctgen.datasets.utils import traj_action_sampler
 
 def current_time_str():
     now = datetime.now()
@@ -77,10 +76,11 @@ class BaseTrainer():
         self.data_loaders = {}
         for mode, config in dataset_configs.items():
             dataset = registry.get_dataset(dataset_type)(task_config, config.SPLIT)
+            
             # batch_size should be the effective batch size regardless of the number of GPUs
             batch_size = config.BATCH_SIZE
             if len(self.config.GPU) > 1:
-                batch_size = max(1, int(batch_size / len(self.config.GPU)))
+                batch_size = int(batch_size / len(self.config.GPU))
             if self.config.DEBUG:
                 self.data_loaders[mode] = DataLoader(dataset, batch_size=batch_size, shuffle=False, pin_memory = False,
                 drop_last=config.DROP_LAST, num_workers=1, collate_fn=collate_fn)

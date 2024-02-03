@@ -1,0 +1,15 @@
+Summary: We generate 2 vehicles in the scene on a four-lane two-way road with an intersection. The ego car is turning left, while the other car is making a left lane change. The ego car is placed on the left-most lane.
+Explanation:
+- V1 (ego vehicle) is in the center and is making a left turn. Because cars should decelerate at the intersection and during the turing process, before starting the turn his speed level is set to 5, during the turn he needs to decelerate, at which point the speed level is set to 3, and after completing the turn the vehicle re-accelerates, so the speed is set to 5. The overall speed trend is expressed as [5, 3, 3, 5, 5], and the trajectory type is 2, representing a left-turn.
+- V2 is moving in the same direction as the ego vehicle (index 0). Because the ego car is turning left on the left-most lane, V2 should locate in the back right (index 2) of the ego vehicle. It is making a left lane change, so its trajectory type should be set to 4 representing the action "left-change-lane", and the speed trend is [5, 3, 3, 5, 5] for the same reason as V1.
+- Map: Given the medium density and the presence of vehicles behind the ego vehicle, we assume this happens on a 4-lane two-way road. The ego vehicle is in the second lane from the right, with lane id 2. There is an intersection nearby, indicated by 4 since ego car is going to turn left.
+- Event: E1 is composed of two all-zero vectors, V2 is located in the back right(index 2) during the while V1 is making a left-turn. At first V2 was on the right side of the ego car, and after ego car has made the left turn, he would be on the left side of ego car relatively. As V2 stops at the intersection, the distance between V2 and ego car will be increasing from 1 to 4.
+
+Actor Vector:
+- 'V1': [0, 0, 5, 5, 3, 3, 5, 5, 2]
+- 'V2': [3, 0, 5, 5, 3, 3, 5, 5, 4]
+Map Vector:
+- 'Map': [2, 2, 0, 0, 4, 2]
+Event Vector:
+- 'E1': [0, 0, 0, 0, 0] | [0, 0, 0, 0, 0]
+- 'E2': [1, 2, 2, 4, 4] | [2, 2, 3, 3, 4]

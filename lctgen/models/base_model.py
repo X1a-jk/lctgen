@@ -84,14 +84,14 @@ class BaseModel(pl.LightningModule):
                 metric_value = self.metrics[mode][metric_name].compute()
                 if type(metric_value) is dict:
                     for subname, subvalue in metric_value.items():
-                        if not (type(subvalue) is list):
+                        if not (type(subvalue) is dict):
                             self.log('{}/metric-{}-{}'.format(mode, metric_name, subname), subvalue, on_epoch=on_epoch, on_step=on_step, sync_dist=sync_dist)
                         else:
-                            for ii, sval in enumerate(subvalue):
-                                if sval.cpu().isnan():
-                                    continue
-                                self.log('{}/metric-{}-{}-type{}'.format(mode, metric_name, subname, ii), sval, on_epoch=on_epoch, on_step=on_step, sync_dist=sync_dist)
-
+                            for ii in subvalue:
+                                if subvalue[ii].cpu().item():
+                                    if np.isnan(subvalue[ii].cpu().item()):
+                                        continue
+                                    self.log('{}/metric-{}-{}-type{}'.format(mode, metric_name, subname, ii), subvalue[ii], on_epoch=on_epoch, on_step=on_step, sync_dist=sync_dist)
                 else:
                     self.log('{}/metric-{}'.format(mode, metric_name), self.metrics[mode][metric_name], on_epoch=on_epoch, on_step=on_step, sync_dist=sync_dist)
             except Exception as e:
@@ -101,14 +101,13 @@ class BaseModel(pl.LightningModule):
       return {'loss': loss['full_loss'], 'model_output': model_output}
     
     def training_step(self, batch, batch_idx):
-        ans =  self._batch_forward(batch, 'train', batch_idx)
+        return self._batch_forward(batch, 'train', batch_idx)
+    
     def validation_step(self, batch, batch_idx):
-        ans = self._batch_forward(batch, 'val', batch_idx)
-        return ans
-
+        return self._batch_forward(batch, 'val', batch_idx)
+    
     def test_step(self, batch, batch_idx):
-        ans = self._batch_forward(batch, 'test', batch_idx)
-        return ans
+        return self._batch_forward(batch, 'test', batch_idx)
 
     def _configure_schedulers(self, optimizer, scheduler_config):
       scheduler_name = scheduler_config.TYPE

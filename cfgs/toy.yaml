@@ -25,11 +25,11 @@ DATASET:
     - 'full_traj'
     - 'type_traj'
     CLASS:
-      #    - 'pos'
-      #- 'distance'
-      #- 'direction'
-      #- 'speed'
-    - 'action'
+      #- 'pos'
+      - 'distance'
+      - 'direction'
+      - 'speed'
+      - 'action'
       #- 'type_traj'
     NEGATIVE_SAMPLE_NUM: 10
     COUNT_BASE: 1
@@ -98,7 +98,7 @@ MODEL:
         FF_DIM: 2048
         LANE_NUM: 384
         MAP_POS: none
-        MLP_DIM: 256
+        MLP_DIM: 512
         NHEAD: 4
         NLAYER: 1
         QUERY_NUM: 32
@@ -107,10 +107,10 @@ MODEL:
         ATTR_GMM_K: 5
   
       ATTR_QUERY:
-        POS_ENCODING_DIM: 242
+        POS_ENCODING_DIM: 252
 
 LOAD_CHECKPOINT_MODEL: False
-LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/796o6wdf/epoch34.ckpt
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/6s7pbcx0/checkpoints/last.ckpt
 LOAD_CHECKPOINT_TRAINER: False
 
 TEST:
@@ -119,7 +119,7 @@ TEST:
   NUM_WORKERS: 4
 TRAIN:
   BATCH_SIZE: 128
-  LR: 0.001
+  LR: 0.0003
   OPTIMIZER: AdamW
   SCHEDULER:
     MILESTONES:

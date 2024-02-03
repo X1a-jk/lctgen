@@ -1,4 +1,4 @@
-SEED: 0
+SEED: 12
 SAVE_CHECKPOINT: true
 DATASET:
   CACHE: False
@@ -11,9 +11,9 @@ DATASET:
     RANDOM_MASK_RATE: 0.1
   TRAJ_TYPE: xy_theta_relative
   DATA_LIST:
-    TEST: val.txt
-    VAL: val.txt
-    TRAIN: train.txt
+    TEST: 0.txt
+    VAL: 0.txt
+    TRAIN: 0.txt
   TEXT:
     TYPE: attr_ind
     ALL_CLASSES:
@@ -22,13 +22,15 @@ DATASET:
     - 'direction'
     - 'speed'
     - 'action'
+    - 'full_traj'
     - 'type_traj'
     CLASS:
-    - 'pos'
-    - 'distance'
-    - 'direction'
-    - 'speed'
-    - 'action'
+      #- 'pos'
+      - 'distance'
+      - 'direction'
+      - 'speed'
+      - 'action'
+      #- 'type_traj'
     NEGATIVE_SAMPLE_NUM: 10
     COUNT_BASE: 1
     DISTANCE_BASE: 20
@@ -67,7 +69,7 @@ LOSS:
       bbox: 1.0
       motion: 0.1
 
-MAX_EPOCHES: 100
+MAX_EPOCHES: 80
 METRIC:
   TYPE:
   - MMD
@@ -107,26 +109,27 @@ MODEL:
       ATTR_QUERY:
         POS_ENCODING_DIM: 252
 
-LOAD_CHECKPOINT_MODEL: false
-LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/6s7pbcx0/checkpoints/last.ckpt
-LOAD_CHECKPOINT_TRAINER: false
+LOAD_CHECKPOINT_MODEL: False
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/zj2yz3m0/checkpoints/epoch=79-step=42480.ckpt
+LOAD_CHECKPOINT_TRAINER: False
 
 TEST:
-  BATCH_SIZE: 128
+  BATCH_SIZE: 16
   SHUFFLE: false
-  NUM_WORKERS: 8
+  NUM_WORKERS: 4
 TRAIN:
   BATCH_SIZE: 128
   LR: 0.0003
   OPTIMIZER: AdamW
   SCHEDULER:
     MILESTONES:
-    - 70
-    - 90
-  NUM_WORKERS: 8
+    - 20
+    - 40
+    - 60
+  NUM_WORKERS: 16
 VAL:
-  BATCH_SIZE: 128
-  NUM_WORKERS: 8
-VAL_INTERVAL: 10
+  BATCH_SIZE: 16
+  NUM_WORKERS: 4
+VAL_INTERVAL: 5
 VIS_INTERVAL: 10
 WANDB_PROJ: lctgen_attr_ind_motion

@@ -101,7 +101,6 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
 
     shapes = []
     collide = []
-
     poly = agents[0].get_polygon()[0]
     shapes.append(poly)
     for i in range(1, len(agents)):
@@ -134,7 +133,7 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
         lane_color = 'white'
         alpha = 0.2
         linewidth = 6
-    ax.axis('on')
+    ax.axis('off')
 
     for j in range(center.shape[0]):
         traf_state = center[j, -1]
@@ -172,9 +171,10 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
     
     for i in range(len(agents)):
         agent_position = agents[i].position[0]
+        '''
         if abs(agent_position[0]) > 45 or abs(agent_position[1]) > 45:
             continue
-
+        '''
         # if i in collide: continue
         if i == 0:
             col = colors[0]
@@ -201,9 +201,6 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
     plt.autoscale()
     plt.xlim([-80, 80])
     plt.ylim([-80, 80])
-    plt.xticks(np.arange(-80, 80, 1))
-    plt.yticks(np.arange(-80, 80, 1))
-
     
     if save:
         fig.savefig(path, dpi=100, bbox_inches='tight', pad_inches=0)
@@ -230,7 +227,7 @@ def draw_traj(traj, save_np=False, save=False, edge=None, path='../vis', abn_idx
     plt.xlim([-80, 80])
     plt.ylim([-80, 80])
 
-    ax.axis('off')
+    ax.axis('on')
 
     for i in range(traj.shape[1]):
         if i in collide: continue
@@ -309,7 +306,7 @@ def draw(center, agents, other, heat_map=None, save=False, edge=None, path='../v
         linewidth = linewidth
         plt.xlim(heat_map[1][:2])
         plt.ylim(heat_map[1][2:])
-    ax.axis('off')
+    ax.axis('on')
 
     for j in range(center.shape[0]):
         traf_state = center[j, -1]

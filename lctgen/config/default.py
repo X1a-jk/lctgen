@@ -20,7 +20,6 @@ _C.TASK_CONFIG = CN()  # task_config will be stored as a config node
 _C.CMD_TRAILING_OPTS = []  # store command line options as list of strings
 _C.TRAINER_NAME = "default"
 
-_C.LOGGER = "tsboard"
 _C.EXPERIMENT_DIR = "results/debug"
 _C.EXPERIMENT_NAME = "pipeline"
 _C.TENSORBOARD_DIR = "tensorboard"
@@ -145,9 +144,8 @@ _C.DATASET.TEXT.SPEED_BASE = 2.5
 _C.DATASET.TEXT.USE_PADDING = True
 _C.DATASET.TEXT.PADDING = -1
 _C.DATASET.TEXT.FLATTEN = True
-_C.DATASET.TEXT.USE_TRAJ = True
+_C.DATASET.TEXT.USE_TRAJ = False
 _C.DATASET.TEXT.ACTION_STEP = 4
-_C.DATASET.TEXT.MAX_TIME_STEP = 50
 _C.DATASET.TEXT.ACTION_DIM = 1 # 1 for direction/acceleration; 2 for dimention + acceleration
 
 _C.DATASET.IMAGE = CN()
@@ -213,7 +211,7 @@ _C.LLM.TYPE = 'codex'
 _C.LLM.CODEX = CN()
 _C.LLM.CODEX.MODEL = 'gpt-3.5-turbo'
 _C.LLM.CODEX.TEMPERATURE = 0.0
-_C.LLM.CODEX.MAX_TOKENS = 4096
+_C.LLM.CODEX.MAX_TOKENS = 2048
 _C.LLM.CODEX.BEST_OF = 1
 _C.LLM.CODEX.PROMPT_FILE = 'chatapi.prompt'
 _C.LLM.CODEX.SYS_PROMPT_FILE = None
@@ -240,7 +238,7 @@ _C.MODEL.MOTION.CLS_WEIGHT = 0.1
 
 _C.MODEL.SCENE = CN()
 
-_C.MODEL.SCENE.REMOVE_COLLISION = False
+_C.MODEL.SCENE.REMOVE_COLLISION = True
 
 _C.MODEL.SCENE.DEBUG = CN()
 _C.MODEL.SCENE.DEBUG.RANDOM_ENCODE = False

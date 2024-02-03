@@ -83,18 +83,16 @@ class WaymoOpenMotionDataset(Dataset):
         txt_cfg = self.data_cfg.TEXT
         description = descriptions[txt_cfg.TYPE](data, txt_cfg)
         result = {}
-        
+        neighbor_description = NeighborCarsDescription(data, txt_cfg)
         text, type_traj = description.get_category_text(txt_cfg.CLASS)
         token = text
         index = []
-        neighbor_description = NeighborCarsDescription(data, txt_cfg)
         neighbor_txt = neighbor_description.get_neighbor_text()
-        result['nei_text'] = neighbor_txt
         result['text'] = text
         result['token'] = token
         result['index'] = index
         result['traj_type'] = type_traj 
-        
+        result['nei_text'] = neighbor_txt
         return result
 
     def _get_item_helper(self, index):

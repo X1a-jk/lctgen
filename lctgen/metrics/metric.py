@@ -133,12 +133,14 @@ class TrajMatch(Metric):
     super().__init__()
     self.traj_metrics = {}
     self.traj_metrics['scr'] = MeanMetric()
-    self.traj_metrics['ade'] = []
-    self.traj_metrics['fde'] = []
-    self.K = cfg.MODEL.MOTION.K
+    self.traj_metrics['m_ade'] = MeanMetric()
+    self.traj_metrics['m_fde'] = MeanMetric()
+    self.traj_metrics['ade'] = {}
+    self.traj_metrics['fde'] = {}
+    self.K = 6
     for i in range(self.K):
-        self.traj_metrics['ade'].append(MeanMetric())
-        self.traj_metrics['fde'].append(MeanMetric())
+        self.traj_metrics['ade'][i] = MeanMetric()
+        self.traj_metrics['fde'][i] = MeanMetric()
 
     '''
     for i in range(self.K):
@@ -226,6 +228,9 @@ class TrajMatch(Metric):
         ade = ade_all[real_mask].mean()
         fde = MSE(real_traj[last_true_idx], sim_traj[last_true_idx]).sum(dim=-1).sqrt()
 
+        self.traj_metrics['m_ade'].update(ade)
+        self.traj_metrics['m_fde'].update(fde)
+
         self.traj_metrics['ade'][int(real_type)].update(ade)
         self.traj_metrics['fde'][int(real_type)].update(fde)
       scr = self._compute_scr(model_output_scene[i])
@@ -234,21 +239,21 @@ class TrajMatch(Metric):
   def compute(self):
     results = {}
     for attr in self.traj_metrics:
-        if not(type(self.traj_metrics[attr]) is list):
+        if not(type(self.traj_metrics[attr]) is dict):
             self.traj_metrics[attr].to(self.device)
             results[attr] = self.traj_metrics[attr].compute()
         else:
-            results[attr] = []
-            for i, it in enumerate(self.traj_metrics[attr]):
+            results[attr] = {}
+            for i in self.traj_metrics[attr]:
+                it = self.traj_metrics[attr][i]
                 it.to(self.device)
-                results[attr].append(it.compute())
-
+                results[attr][i] = it.compute()
     return results
 
   def reset(self):
         for attr in self.traj_metrics:
-            if not(type(self.traj_metrics[attr]) is list):
+            if not(type(self.traj_metrics[attr]) is dict):
                 self.traj_metrics[attr].reset()
             else:
-                for it in self.traj_metrics[attr]:
-                    it.reset()
+                for i in self.traj_metrics[attr]:
+                    self.traj_metrics[attr][i].reset()

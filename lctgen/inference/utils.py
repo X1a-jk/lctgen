@@ -92,11 +92,11 @@ def output_formating_cot(result):
     return [], []
   vector_idx = vector_idx[0]
   event_idx = event_idx[0]
+
   for line in lines[vector_idx+1:]:
     if 'V' in line or 'Map' in line:
       if 'Vector' in line:
         continue
-
       data_line = line.split(':')[-1].strip()
       data_vec = eval(data_line)
       

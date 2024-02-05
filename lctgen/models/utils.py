@@ -17,7 +17,7 @@ def visualize_decoder(data, decode_probs):
   center = data['center'][0].cpu().numpy()
   rest = data['rest'][0].cpu().numpy()
   bound = data['bound'][0].cpu().numpy()
-
+  # rest = data['cross'][0].cpu().numpy()
   center_mask = data['center_mask'][0].cpu().numpy()
 
   prob = decode_probs['prob'][0].cpu().numpy()
@@ -43,12 +43,12 @@ def visualize_input(data, agents = None):
 
   return draw(center, agents, other=rest, edge=bound, save_np=True, showup=False)
 
-def visualize_map(data):
+def visualize_map(data, save=False, path=None):
   center = data["center"][0].cpu().numpy()
   rest = data["rest"][0].cpu().numpy()
   bound = data["bound"][0].cpu().numpy()
 
-  return draw_seq_map(center, other=rest, edge=bound, save_np=True)
+  return draw_seq_map(center, other=rest, edge=bound, save_np=True, save=save, path=path)
 
 
 def visualize_input_seq(data, agents = None, traj=None, sort_agent=True, clip_size=True, save=False, filename=None):
@@ -75,7 +75,7 @@ def visualize_input_seq(data, agents = None, traj=None, sort_agent=True, clip_si
   if clip_size:
     for i in range(len(agents)):
       agents[i].length_width = np.clip(agents[i].length_width, [MIN_LENGTH, MIN_WIDTH], [10.0, 5.0])
-
+    
   return draw_seq(center, agents, traj=traj, other=rest, edge=bound, save_np=True, save=save, path=filename)
 
 def visualize_query_heatmaps(data, output):

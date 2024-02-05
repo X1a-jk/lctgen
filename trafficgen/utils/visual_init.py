@@ -43,7 +43,9 @@ def draw_seq_map(center,  other=None, heat_map=False, save_np=False, save=False,
     plt.axis('equal')
 
     shapes = []
-    lane_color = 'black'
+    lane_color = 'green'
+    bound_color = 'red'
+    rest_color = 'blue'
     alpha = 0.12
     linewidth = 3
 
@@ -67,13 +69,17 @@ def draw_seq_map(center,  other=None, heat_map=False, save_np=False, save=False,
             color = 'green'
             ax.plot((x0, x1), (y0, y1), color=color, alpha=alpha, linewidth=linewidth, zorder=5000)
 
+    
     if edge is not None:
+        print('printing edge')
+        print(len(edge))
+        colors = ['red', 'blue', 'orange', 'green', 'purple', 'brown']
         for j in range(len(edge)):
-
+            cr = colors[j % len(colors)]
             # if lane[j, k, -1] == 0: continue
             x0, y0, x1, y1, = edge[j, :4]
             if x0 == 0: break
-            ax.plot((x0, x1), (y0, y1), lane_color, linewidth=1.5)
+            ax.plot((x0, x1), (y0, y1), cr, linewidth=1.5)
             # ax.arrow(x0, y0, x1-x0, y1-y0,head_width=1.5,head_length=0.75,width = 0.1)
     if other is not None:
         for j in range(len(other)):
@@ -81,7 +87,7 @@ def draw_seq_map(center,  other=None, heat_map=False, save_np=False, save=False,
             # if lane[j, k, -1] == 0: continue
             x0, y0, x1, y1, = other[j, :4]
             if x0 == 0: break
-            ax.plot((x0, x1), (y0, y1), lane_color, linewidth=0.7, alpha=0.9)
+            ax.plot((x0, x1), (y0, y1), rest_color, linewidth=0.7, alpha=0.9)
     # ax.set_facecolor('black')
     plt.autoscale()
     if save:

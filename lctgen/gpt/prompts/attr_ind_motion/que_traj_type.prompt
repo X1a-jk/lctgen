@@ -13,15 +13,15 @@ Event:
 - E3: V3 is in the front left of ego car , so all dimension of the vector is set to 5, representing the position "front_left". Since the scene is sparse, the relative is moderate between each vehicle and ego car. So the first vector is set to four since it is furtherer than V2.
 
 Actor Vector:
-- 'V1': [0, 0, 8, 8, 8, 8, 8, 8, 1]
-- 'V2': [3, 0, 7, 7, 7, 7, 7, 7, 1]
-- 'V3': [4, 0, 7, 7, 7, 7, 7, 7, 1]
+- 'V1': [-1, 0, 0, 8, 8, 8, 8, 8, 8, 1]
+- 'V2': [5, 3, 0, 7, 7, 7, 7, 7, 7, 1]
+- 'V3': [2, 4, 0, 7, 7, 7, 7, 7, 7, 1]
 Map Vector:
 - 'Map': [4, 4, 2, 2, 3, 3]
 Event Vector:
 - ‘E1’: [0, 0, 0, 0, 0] | [0, 0, 0, 0, 0]
 - 'E2': [3, 3, 3, 3, 3] | [2, 2, 2, 2, 2]
-- 'E3': [4, 4, 4, 4, 4] | [5, 5, 4, 4, 3]
+- 'E3': [4, 4, 4, 4, 4] | [5, 5, 5, 5, 5]
 
 
 Query: The scene is with medium density. There are some cars at the intersection. The ego car is turning left, while some of the cars are turing right.
@@ -37,15 +37,15 @@ Explanation:
 
 
 Actor Vector:
-- 'V1': [0, 0, 5, 5, 3, 3, 5, 5, 2]
-- 'V2': [3, 0, 5, 5, 3, 3, 5, 5, 0]
-- 'V3': [4, 1, 5, 5, 3, 3, 5, 5, 3]
+- 'V1': [-1, 0, 0, 5, 5, 3, 3, 5, 5, 2]
+- 'V2': [2, 3, 0, 5, 5, 3, 3, 5, 5, 0]
+- 'V3': [5, 4, 1, 5, 5, 3, 3, 5, 5, 3]
 Map Vector:
 - 'Map': [2, 2, 0, 0, 4, 2]
 Event Vector:
 - ‘E1’: [0, 0, 0, 0, 0] | [0, 0, 0, 0, 0]
 - 'E2': [1, 2, 2, 4, 4] | [2, 2, 3, 3, 4]
-- 'E3': [1, 1, 2, 2, 3] | [5, 5, 4, 4, 3]
+- 'E3': [1, 1, 2, 2, 3] | [5, 5, 4, 4, 2]
 
 
 Query: Vehicles changing lanes to merge into the lane.
@@ -59,9 +59,9 @@ Merging means that vehicles in adjacent lanes want to change into the lane of eg
 - Event: E1 is composed of all-zero vectors. V2 is at the front left at the beginning(index 5), ant after the lane-changing process, it's at the middle back of V1(index 3). Because of the deceleration, the distance to V1 will decrease and then increase, which is represented as [2, 1, 1, 2, 3]. V3 is at the front right at the beginning(index 1), ant after the lane-changing process, it's at the middle back of V1(index 3). Because of the deceleration, the distance to V1 will decrease and then increase, which is represented as [2, 1, 1, 2, 3].
 
 Actor Vector:
-- 'V1': [0, 0, 5, 5, 5, 5, 5, 5, 1]
-- 'V2': [0, 0, 5, 5, 3, 2, 4, 4, 5]
-- 'V3': [0, 0, 6, 6, 4, 2, 2, 4, 4]
+- 'V1': [-1, 0, 0, 5, 5, 5, 5, 5, 5, 1]
+- 'V2': [5, 0, 0, 5, 5, 3, 2, 4, 4, 5]
+- 'V3': [1, 0, 0, 6, 6, 4, 2, 2, 4, 4]
 Map Vector:
 - 'Map': [3, 3, 0, 0, -1, 2]
 Event Vector:

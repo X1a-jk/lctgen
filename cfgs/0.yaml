@@ -25,7 +25,7 @@ DATASET:
     - 'full_traj'
     - 'type_traj'
     CLASS:
-      #- 'pos'
+      - 'pos'
       - 'distance'
       - 'direction'
       - 'speed'

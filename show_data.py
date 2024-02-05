@@ -8,7 +8,7 @@ from PIL import Image
 from lctgen.datasets.utils import fc_collate_fn
 from lctgen.config.default import get_config
 from lctgen.core.registry import registry
-from lctgen.models.utils import visualize_input_seq, visualize_output_seq
+from lctgen.models.utils import visualize_input_seq, visualize_output_seq, visualize_map
 from trafficgen.utils.typedef import *
 import copy
 import matplotlib.pyplot as plt
@@ -46,18 +46,22 @@ for i, batch in enumerate(loader):
         print("***************************************************")
         print(data['gt_pos'][0][:, data['agent_mask'][0], :][:, j, :])
     '''
+    
+    print(data.keys())
     # print("real traj: ")
     # print(data["gt_pos"][0][:, data['agent_mask'][0], :][:, 0, :])
     agents = data['agent']
     veh_type = data['traj_type'][:, data['agent_mask'][0], :].cpu().tolist()[0]
     #print(data['text'])
-    # print(data['traj_type'])
+    
     #print(data['nei_text'])
 
     file_id = batch['file'][0].split(".")[0]
     file_name = "./map/" + file_id+'.png'
+    map_name = "./map/" + file_id+'_map.png'
     gif_name = './map/' + file_id+'.gif'
     demo_fig = visualize_input_seq(data, save=True, filename=file_name)
+    maps = visualize_map(data, save=True, path=map_name)
     #demo_gif = visualize_output_seq(data, data)
     #demo_gif[0].save(gif_name, save_all=True, append_images=demo_gif[1:])
     # break

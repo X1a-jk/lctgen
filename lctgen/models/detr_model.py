@@ -235,8 +235,8 @@ class DETRAgentQuery(nn.Module):
             nei_query_encoding = self.nei_embedding_layer(nei_query_input) #.unsqueeze(0)
             nei_query_encoding = self.neighbor_txt_embedding(nei_query_encoding)
             nei_feat = self.nei_decoder(tgt=nei_query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
-            agent_feat = self.cross_attention(agent_feat, nei_feat, nei_feat)
-            #agent_feat = self.cross_attention(nei_feat, agent_feat, agent_feat)
+            #agent_feat = self.cross_attention(agent_feat, nei_feat, nei_feat)
+            agent_feat = self.cross_attention(nei_feat, agent_feat, agent_feat)
         pred_logits = torch.einsum('bqk,bmk->bqm', query_mask, memory_mask)
 
         if self.use_background:
@@ -245,9 +245,9 @@ class DETRAgentQuery(nn.Module):
 
         # Attribute MLP
         result = self._output_to_attrs(agent_feat)
-        result['pred_logits'] = pred_logits
-        
+        result['pred_logits'] = pred_logits       
         # Motion MLP
+        # result['bound'] = data['bound']
         if self.motion_cfg.ENABLE:
             self._motion_predict(result, agent_feat)
             result['type_traj'] = type_traj

@@ -90,7 +90,7 @@ def gen_scenario_from_gpt_text(llm_text, cfg, model, map_vecs, map_ids):
     # retrive map from map dataset
     sorted_idx = map_retrival(map_vector, map_vecs)[:1]
     map_id = map_ids[sorted_idx[0]]
-    map_id = '6_2360.pkl 100'
+    # map_id = '6_2360.pkl 100'
     #load map data
     batch = get_map_data_batch(map_id, cfg)
     type_len = batch['traj_type'].shape[1]
@@ -100,29 +100,39 @@ def gen_scenario_from_gpt_text(llm_text, cfg, model, map_vecs, map_ids):
         else:
             batch['traj_type'][0, i, 0] = -2
     # inference with LLM-output Structured Representation
-    print(batch['text'])   
+#    print(batch['text'])   
+    
     batch['text'] = torch.tensor(agent_vector, dtype=batch['text'].dtype, device=model.device)[None, ...]
     event_tensor = torch.tensor(event_vector, dtype=batch['nei_text'][1].dtype, device=model.device)[None, ...]
     batch['text'] = batch['text'][:, :, :-1]
     batch['nei_text'] = [batch['nei_text'][0], event_tensor]
     b, d, _ = batch['text'].shape
     padding = -1 * torch.ones((b, d, 1), device=model.device)
-    batch['text'] = torch.cat((padding, batch['text']), dim=-1)
+#    batch['text'] = torch.cat((padding, batch['text']), dim=-1)
     b_2, d_2, _ = batch['nei_text'][1].shape
     padding_2 = -1 * torch.ones((b_2, d_2, 1), device=model.device)
     # batch['nei_text'][1] = torch.cat((batch['nei_text'][1],padding_2), dim=-1)
     batch['agent_mask'] = torch.tensor([1]*agent_num + [0]*(MAX_AGENT_NUM - agent_num), \
             dtype=batch['agent_mask'].dtype, device=model.device)[None, ...]
-    print(batch['text'])
+#    print(batch['text'])
 #    with open('6_2360.pickle', 'rb') as file:
 #        batch = pickle.load(file)
+    
     print(batch['file'])
     for k in batch.keys():
         if type(batch[k])==torch.Tensor:
             batch[k] = batch[k].to(model.device)
-    model_output = model.forward(batch, 'val')['text_decode_output']
-    output_scene = model.process(model_output, batch, num_limit=1, with_attribute=True, pred_ego=True, pred_motion=True)
-    # return "finished"
+
+    exceed = True
+    i = 0
+    while exceed and i<10:
+        print(f"repeat times {i}")
+        model_output = model.forward(batch, 'val')['text_decode_output']
+        output_scene = model.process(model_output, batch, num_limit=1, with_attribute=True, pred_ego=True, pred_motion=True)
+        # return "finished"
+        exceed = output_scene[0]['exceed']
+        print(exceed)
+        i+=1
     return vis_decode(batch, output_scene), vis_stat(batch, output_scene)
 
 from lctgen.inference.utils import load_all_map_vectors
@@ -145,21 +155,21 @@ openai.api_key = "EMPTY"
 openai.base_url = "http://localhost:8000/v1/"
 '''
 
-openai.api_key = "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"
+openai.api_key = "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"
 openai.base_url = "https://api.openai-proxy.com/v1/"
 
-
-query = 'Vehicles changing lanes to merge into the lane.'  # @param {type:"string"}
+query = "Dozens of cars driving in the street."
 
 print("query: ")
 print(query)
 
-'''
+
 llm_result = llm_model.forward(query)
 '''
-with open('answer.txt', 'rb') as f:
+with open('response.txt', 'rb') as f:
     llm_result = f.read()
 llm_result = llm_result.decode('utf-8')
+'''
 
 print('LLM inference result:')
 print(llm_result)
@@ -183,6 +193,6 @@ for example_idx in range(len(dataset.data_list)):
 gif_list, jpg = gen_scenario_from_gpt_text(llm_result, cfg, model, map_vecs, map_ids)
 
 print("img_list generated")
-gif_list[0].save("demo_be.gif", save_all=True, append_images=gif_list[1:])
-jpg.save("demo_be.jpg", "JPEG")
+gif_list[0].save("demo_fl.gif", save_all=True, append_images=gif_list[1:])
+jpg.save("demo_fl.jpg", "JPEG")
 

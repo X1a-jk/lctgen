@@ -41,7 +41,26 @@ class PostProcess(nn.Module):
       trajs = np.concatenate(trajs, axis=1)
       rel_trajs = np.concatenate(rel_trajs, axis=1)
       return trajs, rel_trajs
-  
+
+    def _exceed_boundary(self, bound, center, traj):
+      step, num_car, _ = traj.shape
+      exceed = False
+      for i in range(num_car):
+        traj_i = traj[:, i, :][0]
+        traj_f = traj[:, i, :][-1]
+        dis_b_f = min([(b[0]-traj_f[0])**2 + (b[1]-traj_f[1])**2 for b in bound])
+        dis_c_f = min([(c[0]-traj_f[0])**2 + (c[1]-traj_f[1])**2 for c in center])
+        if dis_b_f < dis_c_f:
+            exceed = True
+            break
+        dis_b_i = min([(b[0]-traj_i[0])**2 + (b[1]-traj_i[1])**2 for b in bound])
+        dis_c_i = min([(c[0]-traj_i[0])**2 + (c[1]-traj_i[1])**2 for c in center])
+        if dis_b_i < dis_c_i:
+            exceed = True
+            break
+
+      return exceed
+
     def _convert_future_heading_pred(self, output, future_heading, future_vel, motion_prob, heading, type_traj):
       headings = []
       vels = []
@@ -80,7 +99,7 @@ class PostProcess(nn.Module):
       pred_logits = preds['pred_logits'].cpu()
       bz, nq, nc = pred_logits.shape
       bg_class_ind = nc - 1
-
+    
       if num_limit is not None:
         bz = min(bz, num_limit)
 
@@ -93,7 +112,8 @@ class PostProcess(nn.Module):
         output['center'] = center
         output['file'] = data['file'][i]
         output['center_id'] = data['center_id'][i]
-
+        bound_i = data['bound'][i][:, :2].cpu()
+        center_i = data['center'][i][:, :2].cpu()
         # get the predicted class for each query
         # remove non_mask category before argmax
         if self.use_background:
@@ -143,6 +163,7 @@ class PostProcess(nn.Module):
           output['traj'] = []
           output['rel_traj'] = []
           output['traj_type'] = []
+          output['exceed'] = []
           outputs.append(output)
           continue
         
@@ -221,8 +242,9 @@ class PostProcess(nn.Module):
             motion_prob = None
           heading = np.concatenate([agent.heading for agent in agent_list])
           output['traj'], output['rel_traj'] = self._convert_motion_pred_to_traj(output, motion, motion_prob, heading, type_traj)
-
           # TODO: add postprocessing for future heading and velocity
+          exceed_bound = self._exceed_boundary(bound_i, center_i, output['traj'])
+          output['exceed'] = exceed_bound
           if 'pred_future_heading' in preds:
             future_heading = preds['pred_future_heading'][i, query_idx].cpu().numpy()
             future_vel = preds['pred_future_vel'][i, query_idx].cpu().numpy()

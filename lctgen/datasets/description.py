@@ -848,6 +848,29 @@ class NeighborCarsDescription(AttrIndDescription):
         data = [agents, agent_lanes, agent_vec_index, file]
         data = self._sort_agents(*data, max_agent)
 
+    def _get_all_traj(self, agents, action_step, s_rate=None, sample_num=None):
+      trajs = self.data['gt_pos']
+      all_heading = self.data["future_heading"][:, self.data['agent_mask']]
+      traj_each_agent = {}
+      heading_each_agent = {}
+      for aix in range(trajs[:, self.data['agent_mask'], :].shape[1]):
+        pos_agent = trajs[:, self.data['agent_mask'], :][:, aix, :]
+        heading_agent = all_heading[:, aix]
+        valid_mask = (abs(pos_agent[:, 0])<self.VALID_LIMIT) * (abs(pos_agent[:, 1])<self.VALID_LIMIT)
+        pos_agent = pos_agent[valid_mask]
+        pos_step = pos_agent.shape[0]
+        if s_rate == None:
+          sample_rate = pos_step // (action_step+1) 
+        if sample_num == None:
+          sample_num = -1
+
+        pos_agent = pos_agent[::sample_rate][:sample_num]
+        traj_each_agent.update({aix: pos_agent})
+        heading_agent = heading_agent[valid_mask]
+        heading_agent = heading_agent[::sample_rate][:sample_num].reshape((-1,1))
+        heading_each_agent.update({aix: heading_agent})
+
+      return traj_each_agent, heading_each_agent
 
     def _get_neighbor_text(self, agents, agent_lanes, agent_vec_index, file, output_idx):
         # print(self.data['file'])
@@ -871,18 +894,22 @@ class NeighborCarsDescription(AttrIndDescription):
         all_heading = self.data["future_heading"][:, self.data['agent_mask']]
         traj_each_agent = {}
         heading_each_agent = {}
+        '''
         for aix in range(trajs[:, self.data['agent_mask'], :].shape[1]):
             pos_agent = trajs[:, self.data['agent_mask'], :][:, aix, :]
             heading_agent = all_heading[:, aix]
             valid_mask = (abs(pos_agent[:, 0])<self.VALID_LIMIT) * (abs(pos_agent[:, 1])<self.VALID_LIMIT)
             pos_agent = pos_agent[valid_mask]
             pos_step = pos_agent.shape[0]
+            print(pos_agent.shape)
             sample_rate = pos_step // (action_step+1)
             pos_agent = pos_agent[::sample_rate][:SAMPLE_NUM]
             traj_each_agent.update({aix: pos_agent})
             heading_agent = heading_agent[valid_mask]
             heading_agent = heading_agent[::sample_rate][:SAMPLE_NUM].reshape((-1,1))
             heading_each_agent.update({aix: heading_agent})
+        '''
+        traj_each_agent, heading_each_agent = self._get_all_traj(agents, action_step, s_rate=None, sample_num=SAMPLE_NUM)
 
         default = self.padding_num * torch.ones((max_agent, SAMPLE_NUM, 2))
         default[0, :] = torch.zeros((1, SAMPLE_NUM, 2))

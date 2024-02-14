@@ -71,7 +71,7 @@ class DETRAgentQuery(nn.Module):
         self.query_mask_head = MLP([d_model, mlp_dim*2, mlp_dim])
         self.memory_mask_head = MLP([d_model, mlp_dim*2, mlp_dim])
 
-    
+        
         #neighbor
         self.head = 8
         nei_decoder_layer = nn.TransformerDecoderLayer(**layer_cfg)
@@ -227,7 +227,6 @@ class DETRAgentQuery(nn.Module):
         
         use_neighbor_query, nei_query_input = data["nei_text"]
         use_neighbor_feat = True #not (False in use_neighbor_query.cpu().tolist())
-        
         if use_neighbor_feat:
             nei_dim = nei_query_input.shape[-1]
             feat_dim = pos_enc_dim//nei_dim
@@ -235,13 +234,17 @@ class DETRAgentQuery(nn.Module):
             nei_query_encoding = self.nei_embedding_layer(nei_query_input) #.unsqueeze(0)
             nei_query_encoding = self.neighbor_txt_embedding(nei_query_encoding)
             nei_feat = self.nei_decoder(tgt=nei_query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
-            #agent_feat = self.cross_attention(agent_feat, nei_feat, nei_feat)
-            agent_feat = self.cross_attention(nei_feat, agent_feat, agent_feat)
-        pred_logits = torch.einsum('bqk,bmk->bqm', query_mask, memory_mask)
+            agent_feat = self.cross_attention(agent_feat, nei_feat, nei_feat)
+            # agent_feat = self.cross_attention(nei_feat, agent_feat, agent_feat)
+        
+        
 
+        pred_logits = torch.einsum('bqk,bmk->bqm', query_mask, memory_mask)
+        
         if self.use_background:
             background_logits = self.background_head(agent_feat)
             pred_logits = torch.cat([pred_logits, background_logits], dim=-1)
+        
 
         # Attribute MLP
         result = self._output_to_attrs(agent_feat)

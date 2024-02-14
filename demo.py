@@ -158,7 +158,7 @@ openai.base_url = "http://localhost:8000/v1/"
 openai.api_key = "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"
 openai.base_url = "https://api.openai-proxy.com/v1/"
 
-query = "Dozens of cars driving in the street."
+query = "Two cars driving in the same lane, one right behind the other."
 
 print("query: ")
 print(query)
@@ -193,6 +193,6 @@ for example_idx in range(len(dataset.data_list)):
 gif_list, jpg = gen_scenario_from_gpt_text(llm_result, cfg, model, map_vecs, map_ids)
 
 print("img_list generated")
-gif_list[0].save("demo_fl.gif", save_all=True, append_images=gif_list[1:])
-jpg.save("demo_fl.jpg", "JPEG")
+gif_list[0].save("demo_bh.gif", save_all=True, append_images=gif_list[1:])
+jpg.save("demo_bh.jpg", "JPEG")
 

@@ -77,6 +77,9 @@ class WaymoOpenMotionDataset(Dataset):
         data['text_index'] = txt_result['index']
         data['traj_type'] = txt_result['traj_type']
         data['nei_text'] = txt_result['nei_text']
+        data['nei_pos_i'] = txt_result['nei_pos_i']
+        data['nei_pos_f'] = txt_result['nei_pos_f']
+        data['type_pos'] = data['text'][:, 0]
         return data, txt_result
 
     def _get_text(self, data):
@@ -88,11 +91,15 @@ class WaymoOpenMotionDataset(Dataset):
         token = text
         index = []
         neighbor_txt = neighbor_description.get_neighbor_text()
+        neighbor_pos_i, neighbor_pos_f = neighbor_description.get_neighbor_rel_pos()
         result['text'] = text
         result['token'] = token
         result['index'] = index
         result['traj_type'] = type_traj 
         result['nei_text'] = neighbor_txt
+        result['nei_pos_i'] = neighbor_pos_i
+        result['nei_pos_f'] = neighbor_pos_f
+        result['type_pos'] = result['text'][:, 0]
         return result
 
     def _get_item_helper(self, index):

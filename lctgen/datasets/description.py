@@ -1,5 +1,6 @@
 import os
 import random
+from re import T
 
 import numpy as np
 import json
@@ -860,7 +861,9 @@ class NeighborCarsDescription(AttrIndDescription):
         pos_agent = pos_agent[valid_mask]
         pos_step = pos_agent.shape[0]
         if s_rate == None:
-          sample_rate = pos_step // (action_step+1) 
+          sample_rate = pos_step // (action_step+1)
+        else:
+          sample_rate = s_rate 
         if sample_num == None:
           sample_num = -1
 
@@ -871,6 +874,30 @@ class NeighborCarsDescription(AttrIndDescription):
         heading_each_agent.update({aix: heading_agent})
 
       return traj_each_agent, heading_each_agent
+    
+    def _get_neighbor_rel_pos(self, agents, agent_lanes, agent_vec_index, file, output_idx):
+      traj_each_agent, heading_each_agent = self._get_all_traj(agents, self.cfg.ACTION_STEP, s_rate=1, sample_num=None)
+      ego_heading = heading_each_agent[0]
+      init_pos = []
+      final_pos = []
+      max_agent = self.MAX_CNT if self.use_padding else len(agents)
+      init_pos = self.padding_num * np.ones((max_agent, 1))
+      final_pos = self.padding_num * np.ones((max_agent, 1))
+
+      if len(traj_each_agent)<1:
+        return init_pos, final_pos
+      init_pos_0 = traj_each_agent[0][0]
+      final_pos_0 = traj_each_agent[0][-1]
+      for i in range(len(traj_each_agent)):
+        init_pos_i = traj_each_agent[i][0]
+        final_pos_i = traj_each_agent[i][-1]
+        '''
+        init_pos[i, 0] = np.sqrt((init_pos_0[0]-init_pos_i[0])**2+(init_pos_0[1]-init_pos_i[1])**2)
+        final_pos[i, 0] = np.sqrt((final_pos_0[0]-final_pos_i[0])**2+(final_pos_0[1]-final_pos_i[1])**2)
+        '''
+        init_pos[i, 0] = self.pos_rel(ego_heading[0], init_pos_0, init_pos_i)[1]
+        final_pos[i, 0] = self.pos_rel(ego_heading[-1], final_pos_0, final_pos_i)[1]
+      return init_pos, final_pos
 
     def _get_neighbor_text(self, agents, agent_lanes, agent_vec_index, file, output_idx):
         # print(self.data['file'])
@@ -894,25 +921,12 @@ class NeighborCarsDescription(AttrIndDescription):
         all_heading = self.data["future_heading"][:, self.data['agent_mask']]
         traj_each_agent = {}
         heading_each_agent = {}
-        '''
-        for aix in range(trajs[:, self.data['agent_mask'], :].shape[1]):
-            pos_agent = trajs[:, self.data['agent_mask'], :][:, aix, :]
-            heading_agent = all_heading[:, aix]
-            valid_mask = (abs(pos_agent[:, 0])<self.VALID_LIMIT) * (abs(pos_agent[:, 1])<self.VALID_LIMIT)
-            pos_agent = pos_agent[valid_mask]
-            pos_step = pos_agent.shape[0]
-            print(pos_agent.shape)
-            sample_rate = pos_step // (action_step+1)
-            pos_agent = pos_agent[::sample_rate][:SAMPLE_NUM]
-            traj_each_agent.update({aix: pos_agent})
-            heading_agent = heading_agent[valid_mask]
-            heading_agent = heading_agent[::sample_rate][:SAMPLE_NUM].reshape((-1,1))
-            heading_each_agent.update({aix: heading_agent})
-        '''
         traj_each_agent, heading_each_agent = self._get_all_traj(agents, action_step, s_rate=None, sample_num=SAMPLE_NUM)
 
         default = self.padding_num * torch.ones((max_agent, SAMPLE_NUM, 2))
-        default[0, :] = torch.zeros((1, SAMPLE_NUM, 2))
+        default[0, :] = torch.zeros((1, SAMPLE_NUM, 2)) # both dis, pos
+        # default[0, :, 0] = 0  # w/o dis
+        # default[0, :, 1] = 0  # w/o pos
         ego_heading = heading_each_agent[0]
         
         if len(traj_each_agent) <= 1:
@@ -921,7 +935,10 @@ class NeighborCarsDescription(AttrIndDescription):
         neighbor_trajs_tensor = self.padding_num * torch.ones((max_agent, SAMPLE_NUM * 2))
 
         ego_traj = traj_each_agent[0]
-        neighbor_trajs_tensor[0, :] = torch.zeros((1, SAMPLE_NUM * 2))
+        neighbor_trajs_tensor[0, :] = torch.zeros((1, SAMPLE_NUM * 2)) # both dis, pos
+        # neighbor_trajs_tensor[0, SAMPLE_NUM:] = torch.zeros((1, SAMPLE_NUM)) # w/o dis
+        # neighbor_trajs_tensor[0, :SAMPLE_NUM] = torch.zeros((1, SAMPLE_NUM)) # w/o pos
+        
         for aidx in range(1,len(traj_each_agent)):
             traj_temp = traj_each_agent[aidx]
             lst_temp = []
@@ -966,10 +983,14 @@ class NeighborCarsDescription(AttrIndDescription):
             ang = 4
         else:
             ang = 3
+        # degree_pos_rel = -1 # w/o relstive distance
+        # ang = -1 # w/o relative pos
         return [degree_pos_rel, ang]
 
     def get_neighbor_text(self):
         return self._get_neighbor_text(*self.packed_data)
+    def get_neighbor_rel_pos(self):
+        return self._get_neighbor_rel_pos(*self.packed_data)
 
 
 

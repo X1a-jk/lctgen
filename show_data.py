@@ -41,6 +41,9 @@ for i, batch in enumerate(loader):
     data = batch
     print(data['file'])
     # type_lst = [0, 0, 0, 0, 0, 0]
+    # print(data['nei_pos_i'])
+    # print(data['nei_pos_f'])
+    print(data['type_pos'])
     '''
     for j in range(data['gt_pos'][0][:, data['agent_mask'][0], :].shape[1]):
         print("***************************************************")

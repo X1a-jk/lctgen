@@ -46,7 +46,7 @@ EXPERIMENT_NAME: inference
 LOAD_CHECKPOINT_MODEL: true
 #LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/0ecxc4bo/checkpoints/epoch=99-step=53100.ckpt
 #LOAD_CHECKPOINT_PATH: checkpoints/example.ckpt
-LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/ltjfmv7v/checkpoints/epoch=99-step=53100.ckpt
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/hrjcmqd5/checkpoints/epoch=189-step=100890.ckpt
 LOAD_CHECKPOINT_TRAINER: true
 
 LOSS:

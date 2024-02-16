@@ -155,7 +155,7 @@ openai.api_key = "EMPTY"
 openai.base_url = "http://localhost:8000/v1/"
 '''
 
-openai.api_key = "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"
+openai.api_key = "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"
 openai.base_url = "https://api.openai-proxy.com/v1/"
 
 query = "Two cars driving in the same lane, one right behind the other."
@@ -163,13 +163,13 @@ query = "Two cars driving in the same lane, one right behind the other."
 print("query: ")
 print(query)
 
-
+'''
 llm_result = llm_model.forward(query)
 '''
 with open('response.txt', 'rb') as f:
     llm_result = f.read()
 llm_result = llm_result.decode('utf-8')
-'''
+
 
 print('LLM inference result:')
 print(llm_result)

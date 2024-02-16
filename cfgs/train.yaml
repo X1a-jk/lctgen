@@ -67,7 +67,7 @@ LOSS:
       bbox: 1.0
       motion: 0.1
 
-MAX_EPOCHES: 300
+MAX_EPOCHES: 120
 METRIC:
   TYPE:
   - MMD
@@ -108,7 +108,7 @@ MODEL:
         POS_ENCODING_DIM: 252
 
 LOAD_CHECKPOINT_MODEL: true
-LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/hrjcmqd5/checkpoints/last.ckpt
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/uaqj641g/checkpoints/last.ckpt
 LOAD_CHECKPOINT_TRAINER: true
 
 TEST:

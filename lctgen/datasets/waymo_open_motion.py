@@ -11,6 +11,8 @@ from lctgen.core.registry import registry
 
 from .description import descriptions
 from .description import NeighborCarsDescription
+from lctgen.models.neighbor_fuse import kmeans_fuse
+from lctgen.models.neighbor_fuse import binary_fuse, star_fuse
 
 @registry.register_dataset(name='WaymoOpenMotion')
 class WaymoOpenMotionDataset(Dataset):
@@ -25,6 +27,9 @@ class WaymoOpenMotionDataset(Dataset):
         self.MAX_AGENT_NUM = data_cfg.MAX_AGENT_NUM
         self.THRES = data_cfg.THRES
         self.mode = mode
+        self.mt = data_cfg.MAX_TIME
+        self.k = data_cfg.CLUSTER_NUM
+        self.kd = data_cfg.CLUSTER_DIM
 
         with open(self.data_list_file, 'r') as f:
             self.data_list = f.readlines()
@@ -80,6 +85,14 @@ class WaymoOpenMotionDataset(Dataset):
         data['nei_pos_i'] = txt_result['nei_pos_i']
         data['nei_pos_f'] = txt_result['nei_pos_f']
         data['type_pos'] = data['text'][:, 0]
+        cluster_input = kmeans_fuse(data, self.k, self.mt, self.MAX_AGENT_NUM, self.kd)
+        data['cluster_info'] = cluster_input
+        binary_input, binary_mask = binary_fuse(data, self.MAX_AGENT_NUM, dimension=6)
+        data['binary_info'] = binary_input
+        data['binary_mask'] = binary_mask
+        star_input, star_mask = star_fuse(data, self.MAX_AGENT_NUM, dimension=10)
+        data['star_info'] = star_input
+        data['star_mask'] = star_mask
         return data, txt_result
 
     def _get_text(self, data):

@@ -238,8 +238,8 @@ class SetCriterion(nn.Module):
                     pos_loss *= 0.01
                     cls_loss = CLS(src_prob, min_index) * self.motion_cfg.CLS_WEIGHT
                     cls_loss *= 0.01
-                    motion_loss = pos_loss + cls_loss + final_pos_loss + pos_loss + init_pos_loss
-                    motion_attr_loss['motion_pos'].append(pos_loss + cls_loss + final_pos_loss + pos_loss + init_pos_loss) 
+                    motion_loss = pos_loss + cls_loss + final_pos_loss + pos_loss # + init_pos_loss
+                    motion_attr_loss['motion_pos'].append(pos_loss + cls_loss + final_pos_loss + pos_loss) # + init_pos_loss) 
 
                     if pred_other_attr:
                         src_heading = motion_attrs['heading']['src'][b_idx]

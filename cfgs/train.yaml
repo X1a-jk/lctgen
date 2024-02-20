@@ -1,4 +1,4 @@
-SEED: 0
+SEED: 12
 SAVE_CHECKPOINT: true
 DATASET:
   CACHE: False
@@ -38,6 +38,10 @@ DATASET:
     FLATTEN: False
     USE_TRAJ: True
     ACTION_STEP: 4
+    MAX_TIME: 40
+    CLUSTER_DIM: 5
+    CLUSTER_NUM: 5
+
 
 DEBUG: False
 EXPERIMENT_DIR: lctgen
@@ -67,7 +71,7 @@ LOSS:
       bbox: 1.0
       motion: 0.1
 
-MAX_EPOCHES: 120
+MAX_EPOCHES: 100
 METRIC:
   TYPE:
   - MMD
@@ -107,9 +111,9 @@ MODEL:
       ATTR_QUERY:
         POS_ENCODING_DIM: 252
 
-LOAD_CHECKPOINT_MODEL: true
+LOAD_CHECKPOINT_MODEL: false
 LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/uaqj641g/checkpoints/last.ckpt
-LOAD_CHECKPOINT_TRAINER: true
+LOAD_CHECKPOINT_TRAINER: false
 
 TEST:
   BATCH_SIZE: 128
@@ -117,7 +121,7 @@ TEST:
   NUM_WORKERS: 8
 TRAIN:
   BATCH_SIZE: 128
-  LR: 0.0003
+  LR: 0.0004
   OPTIMIZER: AdamW
   SCHEDULER:
     MILESTONES:

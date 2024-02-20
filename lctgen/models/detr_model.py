@@ -5,6 +5,7 @@ import torch.nn as nn
 from trafficgen.utils.model_utils import CG_stacked
 from .blocks import MLP, pos2posemb, PositionalEncoding
 from .att_fuse import ScaledDotProductAttention, MultiHeadAttention
+from .neighbor_fuse import kmeans_fuse
 
 copy_func = copy.deepcopy
 
@@ -74,17 +75,32 @@ class DETRAgentQuery(nn.Module):
         
         #neighbor
         self.head = 8
+        
+        '''
         nei_decoder_layer = nn.TransformerDecoderLayer(**layer_cfg)
         self.nei_decoder =  nn.TransformerDecoder(nei_decoder_layer, num_layers=dcfg.NLAYER)
-        nei_dim = 10 # modify here
+        nei_dim = 9 # modify here
         self.nei_embedding_layer = nn.Sequential(
             nn.Linear(nei_dim, d_model),
             nn.ReLU(),
             nn.Linear(d_model, d_model),
         )
         self.cross_attention = MultiHeadAttention(self.head, d_model)#ScaledDotProductAttention(d_model)
+        '''
+        # self.neighbor_txt_embedding = PositionalEncoding(d_model)
+
         
-        self.neighbor_txt_embedding = PositionalEncoding(d_model)
+        event_decoder_layer = nn.TransformerDecoderLayer(**layer_cfg)
+        self.event_decoder =  nn.TransformerDecoder(event_decoder_layer, num_layers=dcfg.NLAYER)
+        event_dim = 10 # modify here
+        self.event_embedding_layer = nn.Sequential(
+            nn.Linear(event_dim, d_model),
+            nn.ReLU(),
+            nn.Linear(d_model, d_model)
+        )
+        self.event_attention = MultiHeadAttention(self.head, d_model)#ScaledDotProductAttention(d_model)
+        
+        self.event_txt_embedding = PositionalEncoding(d_model)
         
     def _init_motion_decoder(self, d_model, dcfg):
         self.m_K = self.motion_cfg.K
@@ -220,23 +236,39 @@ class DETRAgentQuery(nn.Module):
         query_encoding = learnable_query_embedding + attr_query_encoding
 
         # Generative Transformer
+
         agent_feat = self.decoder(tgt=query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
         # Position MLP + Map Mask MLP
         query_mask = self.query_mask_head(agent_feat)
         memory_mask = self.memory_mask_head(line_enc)
         
         use_neighbor_query, nei_query_input = data["nei_text"]
+        nei_query_input = nei_query_input
         use_neighbor_feat = True #not (False in use_neighbor_query.cpu().tolist())
+        cluster_input = data["cluster_info"]
+        # star_input = data["star_info"]
+        # nei_query_input = cluster_input
+        '''
         if use_neighbor_feat:
             nei_dim = nei_query_input.shape[-1]
             feat_dim = pos_enc_dim//nei_dim
-            # nei_query_encoding = pos2posemb(nei_query_input, feat_dim)
+            nei_query_encoding = pos2posemb(nei_query_input, feat_dim)
             nei_query_encoding = self.nei_embedding_layer(nei_query_input) #.unsqueeze(0)
-            nei_query_encoding = self.neighbor_txt_embedding(nei_query_encoding)
+            # nei_query_encoding = self.neighbor_txt_embedding(nei_query_encoding)
             nei_feat = self.nei_decoder(tgt=nei_query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
             agent_feat = self.cross_attention(agent_feat, nei_feat, nei_feat)
             # agent_feat = self.cross_attention(nei_feat, agent_feat, agent_feat)
+        '''
         
+        event_input = data["star_info"]
+        event_mask = data["star_mask"]
+        event_dim = event_input.shape[-1]
+        event_feat_dim = pos_enc_dim//event_dim
+        # event_input_query_encoding = pos2posemb(event_input, event_feat_dim)
+        event_query_encoding = self.event_embedding_layer(event_input) #.unsqueeze(0)
+        event_query_encoding = self.event_txt_embedding(event_query_encoding)
+        event_feat = self.event_decoder(tgt=event_query_encoding, memory=line_enc, tgt_key_padding_mask=~event_mask, memory_key_padding_mask=~data['center_mask'])
+        agent_feat = self.event_attention(agent_feat, event_feat, event_feat)
         
 
         pred_logits = torch.einsum('bqk,bmk->bqm', query_mask, memory_mask)

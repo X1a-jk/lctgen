@@ -205,6 +205,7 @@ def _get_neighbor_text(data, default, max_agents):
                 ll.append(j[0])
             for k in lst_temp:
                 ll.append(k[1])
+            ll.append(-1)
             default[label_x] = torch.tensor(ll)
             label_x += 1
         # neighbor_trajs_tensor[aidx] = torch.tensor(ll)

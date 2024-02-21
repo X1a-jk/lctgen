@@ -90,7 +90,7 @@ class WaymoOpenMotionDataset(Dataset):
         binary_input, binary_mask = binary_fuse(data, self.MAX_AGENT_NUM, dimension=6)
         data['binary_info'] = binary_input
         data['binary_mask'] = binary_mask
-        star_input, star_mask = star_fuse(data, self.MAX_AGENT_NUM, dimension=10)
+        star_input, star_mask = star_fuse(data, self.MAX_AGENT_NUM, dimension=11)
         data['star_info'] = star_input
         data['star_mask'] = star_mask
         return data, txt_result

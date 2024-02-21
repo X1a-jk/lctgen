@@ -92,7 +92,7 @@ class DETRAgentQuery(nn.Module):
         
         event_decoder_layer = nn.TransformerDecoderLayer(**layer_cfg)
         self.event_decoder =  nn.TransformerDecoder(event_decoder_layer, num_layers=dcfg.NLAYER)
-        event_dim = 10 # modify here
+        event_dim = 242 # modify here
         self.event_embedding_layer = nn.Sequential(
             nn.Linear(event_dim, d_model),
             nn.ReLU(),
@@ -100,7 +100,7 @@ class DETRAgentQuery(nn.Module):
         )
         self.event_attention = MultiHeadAttention(self.head, d_model)#ScaledDotProductAttention(d_model)
         
-        self.event_txt_embedding = PositionalEncoding(d_model)
+        # self.event_txt_embedding = PositionalEncoding(d_model)
         
     def _init_motion_decoder(self, d_model, dcfg):
         self.m_K = self.motion_cfg.K
@@ -264,9 +264,9 @@ class DETRAgentQuery(nn.Module):
         event_mask = data["star_mask"]
         event_dim = event_input.shape[-1]
         event_feat_dim = pos_enc_dim//event_dim
-        # event_input_query_encoding = pos2posemb(event_input, event_feat_dim)
-        event_query_encoding = self.event_embedding_layer(event_input) #.unsqueeze(0)
-        event_query_encoding = self.event_txt_embedding(event_query_encoding)
+        event_input_query_encoding = pos2posemb(event_input, event_feat_dim)
+        event_query_encoding = self.event_embedding_layer(event_input_query_encoding) #.unsqueeze(0)
+        # event_query_encoding = self.event_txt_embedding(event_query_encoding)
         event_feat = self.event_decoder(tgt=event_query_encoding, memory=line_enc, tgt_key_padding_mask=~event_mask, memory_key_padding_mask=~data['center_mask'])
         agent_feat = self.event_attention(agent_feat, event_feat, event_feat)
         

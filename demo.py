@@ -155,21 +155,21 @@ openai.api_key = "EMPTY"
 openai.base_url = "http://localhost:8000/v1/"
 '''
 
-openai.api_key = "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"
+openai.api_key = "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"
 openai.base_url = "https://api.openai-proxy.com/v1/"
 
-query = "Two cars driving in the same lane, one right behind the other."
+query = "Vehicles changing lanes to merge into the lane."
 
 print("query: ")
 print(query)
 
-'''
+
 llm_result = llm_model.forward(query)
 '''
 with open('response.txt', 'rb') as f:
     llm_result = f.read()
 llm_result = llm_result.decode('utf-8')
-
+'''
 
 print('LLM inference result:')
 print(llm_result)
@@ -193,6 +193,6 @@ for example_idx in range(len(dataset.data_list)):
 gif_list, jpg = gen_scenario_from_gpt_text(llm_result, cfg, model, map_vecs, map_ids)
 
 print("img_list generated")
-gif_list[0].save("demo_bh.gif", save_all=True, append_images=gif_list[1:])
-jpg.save("demo_bh.jpg", "JPEG")
+gif_list[0].save("demo_mg.gif", save_all=True, append_images=gif_list[1:])
+jpg.save("demo_mg.jpg", "JPEG")
 

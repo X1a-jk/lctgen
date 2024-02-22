@@ -155,7 +155,7 @@ openai.api_key = "EMPTY"
 openai.base_url = "http://localhost:8000/v1/"
 '''
 
-openai.api_key = "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"
+openai.api_key = "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"
 openai.base_url = "https://api.openai-proxy.com/v1/"
 
 query = "Vehicles changing lanes to merge into the lane."

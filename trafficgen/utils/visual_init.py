@@ -195,7 +195,7 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
                 x1, y1 = traj_i[j + 1]
 
                 if abs(x0) < 80 and abs(y0) < 80 and abs(x1) < 80 and abs(y1) < 80:
-                    ax.plot((x0, x1), (y0, y1), '-', color=col, linewidth=1.8, marker='.', markersize=3)
+                    ax.plot((x0, x1), (y0, y1), '-', color=col, linewidth=3.2, marker='.', markersize=4)
 
         agent = agents[i]
         rect = agent.get_rect()[0]

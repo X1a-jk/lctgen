@@ -866,6 +866,12 @@ class NeighborCarsDescription(AttrIndDescription):
           sample_rate = s_rate 
         if sample_num == None:
           sample_num = -1
+        
+        # sample_rate = 1 if sample_rate <= 0 else sample_rate
+        # print(sample_num)
+        # print(f"sample_num: {sample_num}")
+        # print(f"sample_rate: {sample_rate}")
+
 
         pos_agent = pos_agent[::sample_rate][:sample_num]
         traj_each_agent.update({aix: pos_agent})

@@ -75,21 +75,28 @@ class DETRAgentQuery(nn.Module):
         
         #neighbor
         self.head = 8
-        
+        '''      
+        self.nei_self_attention = MultiHeadAttention(5, 10)
+        self.agent_self_attention = MultiHeadAttention(3, 9)
         '''
+
+        
         nei_decoder_layer = nn.TransformerDecoderLayer(**layer_cfg)
         self.nei_decoder =  nn.TransformerDecoder(nei_decoder_layer, num_layers=dcfg.NLAYER)
-        nei_dim = 9 # modify here
+        
+        nei_dim = 10 # modify here
         self.nei_embedding_layer = nn.Sequential(
             nn.Linear(nei_dim, d_model),
             nn.ReLU(),
             nn.Linear(d_model, d_model),
         )
-        self.cross_attention = MultiHeadAttention(self.head, d_model)#ScaledDotProductAttention(d_model)
-        '''
-        # self.neighbor_txt_embedding = PositionalEncoding(d_model)
-
         
+        self.cross_attention = MultiHeadAttention(self.head, d_model)#ScaledDotProductAttention(d_model)
+        
+        self.neighbor_txt_embedding = PositionalEncoding(d_model)
+        
+
+        '''
         event_decoder_layer = nn.TransformerDecoderLayer(**layer_cfg)
         self.event_decoder =  nn.TransformerDecoder(event_decoder_layer, num_layers=dcfg.NLAYER)
         event_dim = 242 # modify here
@@ -99,7 +106,8 @@ class DETRAgentQuery(nn.Module):
             nn.Linear(d_model, d_model)
         )
         self.event_attention = MultiHeadAttention(self.head, d_model)#ScaledDotProductAttention(d_model)
-        
+        '''
+
         # self.event_txt_embedding = PositionalEncoding(d_model)
         
     def _init_motion_decoder(self, d_model, dcfg):
@@ -230,6 +238,9 @@ class DETRAgentQuery(nn.Module):
         # Agent Query
         attr_query_input = data['text']
         attr_dim = attr_query_input.shape[-1]
+        '''
+        attr_query_input = self.agent_self_attention(attr_query_input, attr_query_input, attr_query_input)
+        '''
         attr_query_encoding = pos2posemb(attr_query_input, pos_enc_dim//attr_dim)
         attr_query_encoding = self.query_embedding_layer(attr_query_encoding)
         learnable_query_embedding = self.actor_query.repeat(b, 1, 1)
@@ -248,18 +259,22 @@ class DETRAgentQuery(nn.Module):
         cluster_input = data["cluster_info"]
         # star_input = data["star_info"]
         # nei_query_input = cluster_input
-        '''
+        
         if use_neighbor_feat:
+            
+            # nei_query_input = self.nei_self_attention(nei_query_input, nei_query_input, nei_query_input)
+            
             nei_dim = nei_query_input.shape[-1]
             feat_dim = pos_enc_dim//nei_dim
-            nei_query_encoding = pos2posemb(nei_query_input, feat_dim)
+            # nei_query_encoding = pos2posemb(nei_query_input, feat_dim)
             nei_query_encoding = self.nei_embedding_layer(nei_query_input) #.unsqueeze(0)
-            # nei_query_encoding = self.neighbor_txt_embedding(nei_query_encoding)
+            nei_query_encoding = self.neighbor_txt_embedding(nei_query_encoding)
             nei_feat = self.nei_decoder(tgt=nei_query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
             agent_feat = self.cross_attention(agent_feat, nei_feat, nei_feat)
             # agent_feat = self.cross_attention(nei_feat, agent_feat, agent_feat)
-        '''
         
+        # agent_feat = self.cross_attention(agent_feat, agent_feat, agent_feat)
+        '''
         event_input = data["star_info"]
         event_mask = data["star_mask"]
         event_dim = event_input.shape[-1]
@@ -269,7 +284,7 @@ class DETRAgentQuery(nn.Module):
         # event_query_encoding = self.event_txt_embedding(event_query_encoding)
         event_feat = self.event_decoder(tgt=event_query_encoding, memory=line_enc, tgt_key_padding_mask=~event_mask, memory_key_padding_mask=~data['center_mask'])
         agent_feat = self.event_attention(agent_feat, event_feat, event_feat)
-        
+        '''
 
         pred_logits = torch.einsum('bqk,bmk->bqm', query_mask, memory_mask)
         

@@ -90,7 +90,8 @@ def gen_scenario_from_gpt_text(llm_text, cfg, model, map_vecs, map_ids):
     # retrive map from map dataset
     sorted_idx = map_retrival(map_vector, map_vecs)[:1]
     map_id = map_ids[sorted_idx[0]]
-    # map_id = '6_2360.pkl 100'
+    # map_id = '0_343.pkl 100'
+    # map_id = '0_288.pkl 100'
     #load map data
     batch = get_map_data_batch(map_id, cfg)
     type_len = batch['traj_type'].shape[1]
@@ -137,9 +138,8 @@ def gen_scenario_from_gpt_text(llm_text, cfg, model, map_vecs, map_ids):
 
 from lctgen.inference.utils import load_all_map_vectors
 
-map_data_file = './data/demo/waymo/demo_map_vec.npy'
+map_data_file = "/home/ubuntu/xiajunkai/lctgen/data/map.npy"
 map_vecs, map_ids = load_all_map_vectors(map_data_file)
-
 
 from lctgen.core.registry import registry
 from lctgen.config.default import get_config
@@ -155,10 +155,10 @@ openai.api_key = "EMPTY"
 openai.base_url = "http://localhost:8000/v1/"
 '''
 
-openai.api_key = "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"
+openai.api_key = "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"
 openai.base_url = "https://api.openai-proxy.com/v1/"
 
-query = "Vehicles changing lanes to merge into the lane."
+query = "The cyclist in front signals to the rider behind before making a turn, ensuring that they both follow the same path and maintain a safe distance"
 
 print("query: ")
 print(query)
@@ -193,6 +193,6 @@ for example_idx in range(len(dataset.data_list)):
 gif_list, jpg = gen_scenario_from_gpt_text(llm_result, cfg, model, map_vecs, map_ids)
 
 print("img_list generated")
-gif_list[0].save("demo_mg.gif", save_all=True, append_images=gif_list[1:])
-jpg.save("demo_mg.jpg", "JPEG")
+gif_list[0].save("./usrstudy/demo_39.gif", save_all=True, append_images=gif_list[1:])
+jpg.save("./usrstudy/demo_39.jpg", "JPEG")
 

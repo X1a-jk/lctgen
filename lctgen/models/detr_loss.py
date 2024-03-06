@@ -33,7 +33,7 @@ class SetCriterion(nn.Module):
         1) we compute hungarian assignment between ground truth boxes and the outputs of the model
         2) we supervise each pair of matched ground-truth / prediction (supervise class and box)
     """
-    def __init__(self, num_classes, matcher, weight_dict, eos_coef, losses, use_center_mask, cfg):
+    def __init__(self, num_classes, matcher, weight_dict, eos_coef, losses, use_center_mask, re_weight, cfg):
         """ Create the criterion.
         Parameters:
             num_classes: number of object categories, omitting the special no-object category
@@ -47,6 +47,7 @@ class SetCriterion(nn.Module):
         self.matcher = matcher
         self.weight_dict = weight_dict
         self.eos_coef = eos_coef
+        self.re_weight = re_weight
         self.losses = losses
         self.use_center_mask = use_center_mask
         self.cfg = cfg
@@ -235,11 +236,11 @@ class SetCriterion(nn.Module):
                     final_pos_loss = final_pos_loss.mean() * 0.01
                     init_pos_loss = init_pos_loss.mean() * 0.01
                     type_pos_loss = type_pos_loss.mean() * 0.01
-                    pos_loss *= 0.01
+                    pos_loss *= 0.5
                     cls_loss = CLS(src_prob, min_index) * self.motion_cfg.CLS_WEIGHT
-                    cls_loss *= 0.01
-                    motion_loss = pos_loss + cls_loss + final_pos_loss + pos_loss # + init_pos_loss
-                    motion_attr_loss['motion_pos'].append(pos_loss + cls_loss + final_pos_loss + pos_loss) # + init_pos_loss) 
+                    cls_loss *= 0.1
+                    motion_loss = pos_loss + cls_loss + type_pos_loss + final_pos_loss # + init_pos_loss
+                    motion_attr_loss['motion_pos'].append(pos_loss + cls_loss + type_pos_loss + final_pos_loss) # + init_pos_loss) 
 
                     if pred_other_attr:
                         src_heading = motion_attrs['heading']['src'][b_idx]
@@ -314,7 +315,7 @@ class SetCriterion(nn.Module):
                 for i in range(B):
                     for sidx, tidx in zip(indices[i][0], indices[i][1]):
                         log_prob_input[i, sidx] = targets[i][attr][tidx]
-                neg_log_prob = -outputs[f'pred_{attr}'].log_prob(log_prob_input.squeeze())
+                neg_log_prob = self.re_weight * (-outputs[f'pred_{attr}'].log_prob(log_prob_input.squeeze()))
                 gmm_losses = []
                 for i in range(B):
                     for sidx in indices[i][0]:

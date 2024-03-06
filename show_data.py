@@ -16,7 +16,7 @@ import numpy as np
 import os
 from lctgen.models.neighbor_fuse import kmeans_fuse
 
-cfg_file = './cfgs/0.yaml'
+cfg_file = './cfgs/toy.yaml'
 cfg = get_config(cfg_file)
 '''
 model_cls = registry.get_model(cfg.MODEL.TYPE)
@@ -75,7 +75,7 @@ def create_agent(data):
 
 for i, batch in enumerate(loader):
     data = batch
-    print(data['file'])
+    # print(data['file'])
     # print(data['traj_type'].shape)
     # type_lst = [0, 0, 0, 0, 0, 0]
     agents = create_agent(data)
@@ -85,14 +85,23 @@ for i, batch in enumerate(loader):
             continue
             print(data['file'])
     '''
-    # print(agents)
+    # print(data['inter_type'])
+    
+    for k, v in data['inter_type'].items():
+        if v.int() != -1 and k in ["surround", "yield"]:
+            print(data['file'])
+            print(f"{k}: {v}")
+            file_id = batch['file'][0].split(".")[0]
+            file_name = "./map/" + file_id+'.png'
+            demo_fig = visualize_input_seq(data, save=True, filename=file_name)
+    
     # for i in agents:
         
-    '''
+    
     for j in range(data['gt_pos'][0][:, data['agent_mask'][0], :].shape[1]):
         # print("***************************************************")
         print(data['gt_pos'][0][:, data['agent_mask'][0], :][:, j, :])
-    '''
+    
     # feat = kmeans_fuse(data, 4, 30)
     # print(feat)
     # print("real traj: ")
@@ -108,14 +117,10 @@ for i, batch in enumerate(loader):
     map_name = "./map/" + file_id+'_map.png'
     gif_name = './map/' + file_id+'.gif'
     demo_fig = visualize_input_seq(data, save=True, filename=file_name)
-    maps = visualize_map(data, save=True, path=map_name)
-    # demo_gif = visualize_output_seq(data, data)
-    #demo_gif[0].save(gif_name, save_all=True, append_images=demo_gif[1:])
-    # break
+    # maps = visualize_map(data, save=True, path=map_name)
     '''
-    if i % 100 == 0:
-        print(type_lst)
-        print("batch "+str(i)+" finished")
+    if i > 200:
+        break
     '''
 '''
 print(type_lst)

@@ -5,7 +5,7 @@ import torch.nn as nn
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from torchmetrics import Accuracy, MeanMetric, Metric
+from torchmetrics import Accuracy, MeanMetric, Metric, MinMetric
 from lctgen.core.registry import registry
 from lctgen.datasets.description import descriptions
 from trafficgen.utils.data_process.agent_process import WaymoAgent
@@ -125,6 +125,39 @@ class MMD_All(Metric):
       for attr in self.mmd_metrics:
         self.mmd_metrics[attr].reset()
 
+def dis_p2p(p1, p2):
+   return torch.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
+
+def dis_point2traj(point, traj):
+  steps = traj.shape[0]
+  min_dis = 0.0
+  first_valid = True
+  for i in range(steps):
+    point_y = traj[i, :]
+    if point_y[0] > 100 or point_y[1] > 100:
+       continue
+    dis = dis_p2p(point, point_y)
+    if first_valid:
+      min_dis = dis
+      first_valid = False
+    else:
+      min_dis = min(min_dis, dis)
+  return min_dis
+
+
+def HAU_dis(real_traj, sim_traj):
+  steps = real_traj.shape[0]
+  hau_dis = 0.0
+  for i in range(steps):
+    point_x = real_traj[i, :]
+    if point_x[0] > 100 or point_x[1] > 100:
+       continue
+    dis = dis_point2traj(point_x, sim_traj)
+    if dis > 10:
+       continue
+    hau_dis = max(hau_dis, dis)
+  return hau_dis
+
 
 @registry.register_metric(name='traj_match')
 class TrajMatch(Metric):
@@ -133,14 +166,31 @@ class TrajMatch(Metric):
     super().__init__()
     self.traj_metrics = {}
     self.traj_metrics['scr'] = MeanMetric()
+    self.traj_metrics['hau_dis'] = MeanMetric()
     self.traj_metrics['m_ade'] = MeanMetric()
     self.traj_metrics['m_fde'] = MeanMetric()
+    self.traj_metrics['min_ade'] = MeanMetric()
+    self.traj_metrics['min_fde'] = MeanMetric()
     self.traj_metrics['ade'] = {}
     self.traj_metrics['fde'] = {}
     self.K = 6
     for i in range(self.K):
         self.traj_metrics['ade'][i] = MeanMetric()
         self.traj_metrics['fde'][i] = MeanMetric()
+
+    self.traj_metrics['ot_ade'] = MeanMetric()
+    self.traj_metrics['fw_ade'] = MeanMetric()
+    self.traj_metrics['mg_ade'] = MeanMetric()
+    self.traj_metrics['yd_ade'] = MeanMetric()
+    self.traj_metrics['sd_ade'] = MeanMetric()
+    self.traj_metrics['jm_ade'] = MeanMetric()
+
+    self.traj_metrics['ot_fde'] = MeanMetric()
+    self.traj_metrics['fw_fde'] = MeanMetric()
+    self.traj_metrics['mg_fde'] = MeanMetric()
+    self.traj_metrics['yd_fde'] = MeanMetric()
+    self.traj_metrics['sd_fde'] = MeanMetric()
+    self.traj_metrics['jm_fde'] = MeanMetric()
 
     '''
     for i in range(self.K):
@@ -211,6 +261,14 @@ class TrajMatch(Metric):
 
       motion_mask = data['all_agent_mask'][i][:, data['agent_mask'][i]]
 
+      min_fde = []
+      min_ade = []
+      # ot_a = []
+      # ot_f = []
+      # yd_a = []
+      # yd_f = []
+      # jm_a = []
+      # jm_f = []
       for real_idx, sim_idx in zip(real_indices, sim_indices):
         # remove the first timestep
         real_traj = data['traj'][i][:, data['agent_mask'][i]][:, real_idx][1:].cpu()
@@ -227,21 +285,90 @@ class TrajMatch(Metric):
         ade_all = MSE(real_traj, sim_traj).sum(dim=-1).sqrt()
         ade = ade_all[real_mask].mean()
         fde = MSE(real_traj[last_true_idx], sim_traj[last_true_idx]).sum(dim=-1).sqrt()
+        hau = HAU_dis(real_traj, sim_traj)
 
         self.traj_metrics['m_ade'].update(ade)
         self.traj_metrics['m_fde'].update(fde)
+        min_ade.append(ade)
+        min_fde.append(fde)
+        '''
+        if int(real_type) == 2 or int(real_type)==3:
+          self.traj_metrics['ade'][2].update(ade)
+          self.traj_metrics['ade'][3].update(ade)
+          self.traj_metrics['fde'][2].update(fde)
+          self.traj_metrics['fde'][3].update(fde)
+
+        if int(real_type) == 4 or int(real_type)==5:
+          self.traj_metrics['ade'][4].update(ade)
+          self.traj_metrics['ade'][5].update(ade)
+          self.traj_metrics['fde'][4].update(fde)
+          self.traj_metrics['fde'][5].update(fde)
+        '''
 
         self.traj_metrics['ade'][int(real_type)].update(ade)
         self.traj_metrics['fde'][int(real_type)].update(fde)
+
+        self.traj_metrics['hau_dis'].update(hau)
+
+        inter_types = data['inter_type']
+        for k,v in inter_types.items():
+           if v[i].int() != -1:
+              if k == "overtake":
+                self.traj_metrics['ot_ade'].update(ade)
+                self.traj_metrics['ot_fde'].update(fde)
+                # ot_a.append(ade)
+                # ot_f.append(fde)
+              if k == "follow":
+                self.traj_metrics['fw_ade'].update(ade)
+                self.traj_metrics['fw_fde'].update(fde)
+              if k == "merge":
+                self.traj_metrics['mg_ade'].update(ade)
+                self.traj_metrics['mg_fde'].update(fde)
+              if k == "yield":
+                # print(data["file"])
+                self.traj_metrics['yd_ade'].update(ade)
+                self.traj_metrics['yd_fde'].update(fde)
+                # yd_a.append(ade)
+                # yd_f.append(fde)
+              if k == "surround":
+                # print(data["file"])
+                self.traj_metrics['sd_ade'].update(ade)
+                self.traj_metrics['sd_fde'].update(fde)
+              if k == "jam":
+                # print(data["file"])
+                self.traj_metrics['jm_ade'].update(ade)
+                self.traj_metrics['jm_fde'].update(fde)
+                # jm_a.append(ade)
+                # jm_f.append(fde)
+
+      # print("ot_a: ")
+      # print(np.mean(np.array(ot_a)))
+      # print("ot_f: ")
+      # print(np.mean(np.array(ot_f)))
+      # print("yd_a: ")
+      # print(np.mean(np.array(yd_a)))
+      # print("yd_f: ")
+      # print(np.mean(np.array(yd_f)))
+      # print("jm_a: ")
+      # print(np.mean(np.array(jm_a)))
+      # print("jm_f: ")
+      # print(np.mean(np.array(jm_f)))
+
       scr = self._compute_scr(model_output_scene[i])
       self.traj_metrics['scr'].update(scr)
+      self.traj_metrics['min_ade'].update(np.min(min_ade))
+      self.traj_metrics['min_fde'].update(np.min(min_fde))
   
   def compute(self):
     results = {}
     for attr in self.traj_metrics:
-        if not(type(self.traj_metrics[attr]) is dict):
+        if not(type(self.traj_metrics[attr]) is dict):            
             self.traj_metrics[attr].to(self.device)
-            results[attr] = self.traj_metrics[attr].compute()
+            res = self.traj_metrics[attr].compute()
+            if np.isnan(res.cpu().item()):
+              continue
+            results[attr] = res
+            
         else:
             results[attr] = {}
             for i in self.traj_metrics[attr]:

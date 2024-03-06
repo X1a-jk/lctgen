@@ -1,4 +1,4 @@
-SEED: 12
+SEED: 42
 SAVE_CHECKPOINT: true
 DATASET:
   CACHE: False
@@ -64,14 +64,14 @@ LOSS:
       labels: 1.0
       attributes: 1.0
     ATTR_WEIGHT:
-      speed: 1.0
-      pos: 1.0
+      speed: 1.5
+      pos: 2.0
       vel_heading: 1.0
       heading: 1.0
-      bbox: 1.0
-      motion: 0.1
+      bbox: 2.0
+      motion: 1.0
 
-MAX_EPOCHES: 100
+MAX_EPOCHES: 80
 METRIC:
   TYPE:
   - MMD
@@ -111,9 +111,10 @@ MODEL:
       ATTR_QUERY:
         POS_ENCODING_DIM: 252
 
-LOAD_CHECKPOINT_MODEL: false
-LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/uaqj641g/checkpoints/last.ckpt
-LOAD_CHECKPOINT_TRAINER: false
+LOAD_CHECKPOINT_MODEL: False
+#LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/4f1qs78s/checkpoints/last.ckpt 71fedwlu
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/hrjcmqd5/checkpoints/last.ckpt
+LOAD_CHECKPOINT_TRAINER: False
 
 TEST:
   BATCH_SIZE: 128
@@ -121,7 +122,7 @@ TEST:
   NUM_WORKERS: 8
 TRAIN:
   BATCH_SIZE: 128
-  LR: 0.0004
+  LR: 0.0003
   OPTIMIZER: AdamW
   SCHEDULER:
     MILESTONES:

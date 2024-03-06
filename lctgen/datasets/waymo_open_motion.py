@@ -12,7 +12,7 @@ from lctgen.core.registry import registry
 from .description import descriptions
 from .description import NeighborCarsDescription
 from lctgen.models.neighbor_fuse import kmeans_fuse
-from lctgen.models.neighbor_fuse import binary_fuse, star_fuse
+from lctgen.models.neighbor_fuse import binary_fuse, star_fuse, get_type_interactions
 
 @registry.register_dataset(name='WaymoOpenMotion')
 class WaymoOpenMotionDataset(Dataset):
@@ -93,6 +93,9 @@ class WaymoOpenMotionDataset(Dataset):
         star_input, star_mask = star_fuse(data, self.MAX_AGENT_NUM, dimension=11)
         data['star_info'] = star_input
         data['star_mask'] = star_mask
+        inter_type = get_type_interactions(data, self.MAX_AGENT_NUM)
+        data['inter_type'] = inter_type
+
         return data, txt_result
 
     def _get_text(self, data):
@@ -292,6 +295,7 @@ class WaymoOpenMotionDataset(Dataset):
             traj = traj
         elif self.data_cfg.TRAJ_TYPE == 'xy_theta_relative':
             # rotate traj of each actor to the direction of the vehicle
+
             traj = traj - traj[[0], :]
             init_heading = case_info['gt_agent_heading'][0]
             traj = rotate(traj[..., 0], traj[..., 1], -init_heading)

@@ -24,8 +24,7 @@ class LCTGen(BaseModel):
     
     loss_cfg = config.LOSS.DETR
     matcher = HungarianMatcher(cost_class=loss_cfg.MATCH_COST.CLASS)
-    self.criterion = SetCriterion(num_classes=cls_num, matcher=matcher, weight_dict=loss_cfg.WEIGHT, eos_coef=loss_cfg.EOS_COEF, losses=loss_cfg.LOSSES, use_center_mask=loss_cfg.USE_CENTER_MASK, cfg=config)
-
+    self.criterion = SetCriterion(num_classes=cls_num, matcher=matcher, weight_dict=loss_cfg.WEIGHT, eos_coef=loss_cfg.EOS_COEF, losses=loss_cfg.LOSSES, use_center_mask=loss_cfg.USE_CENTER_MASK, re_weight=loss_cfg.RE_WEIGHT, cfg=config)
     self.with_attribute = 'attributes' in self.config.LOSS.DETR.LOSSES
     self.pred_ego = self.config.MODEL.PREDICT_EGO
     self.pred_motion = self.config.MODEL.MOTION.ENABLE

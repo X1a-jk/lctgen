@@ -233,12 +233,12 @@ class SetCriterion(nn.Module):
                         init_pos_loss[rel_idx] *= weight_frequency[rel_type]
 
                     pos_loss = torch.gather(pos_loss, dim=1, index=min_index.unsqueeze(-1)).mean()
-                    final_pos_loss = final_pos_loss.mean() * 0.01
+                    final_pos_loss = final_pos_loss.mean() * 0.5
                     init_pos_loss = init_pos_loss.mean() * 0.01
                     type_pos_loss = type_pos_loss.mean() * 0.01
-                    pos_loss *= 0.5
+                    pos_loss *= 1.0
                     cls_loss = CLS(src_prob, min_index) * self.motion_cfg.CLS_WEIGHT
-                    cls_loss *= 0.1
+                    cls_loss *= 1.0
                     motion_loss = pos_loss + cls_loss + type_pos_loss + final_pos_loss # + init_pos_loss
                     motion_attr_loss['motion_pos'].append(pos_loss + cls_loss + type_pos_loss + final_pos_loss) # + init_pos_loss) 
 
@@ -315,7 +315,7 @@ class SetCriterion(nn.Module):
                 for i in range(B):
                     for sidx, tidx in zip(indices[i][0], indices[i][1]):
                         log_prob_input[i, sidx] = targets[i][attr][tidx]
-                neg_log_prob = self.re_weight * (-outputs[f'pred_{attr}'].log_prob(log_prob_input.squeeze()))
+                neg_log_prob = 1.0 * (-outputs[f'pred_{attr}'].log_prob(log_prob_input.squeeze()))
                 gmm_losses = []
                 for i in range(B):
                     for sidx in indices[i][0]:

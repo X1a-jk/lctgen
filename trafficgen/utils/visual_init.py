@@ -140,7 +140,7 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
         alpha = 0.2
         linewidth = 6
     ax.axis('off')
-
+    '''
     for j in range(center.shape[0]):
         traf_state = center[j, -1]
 
@@ -174,7 +174,7 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
             x0, y0, x1, y1, = other[j, :4]
             if x0 == 0: break
             ax.plot((x0, x1), (y0, y1), lane_color, linewidth=0.7, alpha=0.9)
-    
+    '''
     for i in range(len(agents)):
         agent_position = agents[i].position[0]
         '''

@@ -1,4 +1,4 @@
-SEED: 1
+SEED: 12
 SAVE_CHECKPOINT: true
 DATASET:
   CACHE: False
@@ -46,7 +46,7 @@ EXPERIMENT_NAME: inference
 LOAD_CHECKPOINT_MODEL: true
 #LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/0ecxc4bo/checkpoints/epoch=99-step=53100.ckpt
 #LOAD_CHECKPOINT_PATH: checkpoints/example.ckpt
-LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/wuz83uvz/checkpoints/last.ckpt
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/5fv1o13a/checkpoints/last.ckpt
 LOAD_CHECKPOINT_TRAINER: true
 
 LOSS:

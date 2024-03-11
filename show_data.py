@@ -16,7 +16,7 @@ import numpy as np
 import os
 from lctgen.models.neighbor_fuse import kmeans_fuse
 
-cfg_file = './cfgs/toy.yaml'
+cfg_file = './cfgs/inference.yaml'
 cfg = get_config(cfg_file)
 '''
 model_cls = registry.get_model(cfg.MODEL.TYPE)
@@ -73,6 +73,8 @@ def create_agent(data):
     agents = [WaymoAgent(agent[i:i+1]).length_width[0] for i in range(agent.shape[0]) if agent_mask[i]]
     return agents
 
+
+type_lst = [0,0,0,0,0,0]
 for i, batch in enumerate(loader):
     data = batch
     # print(data['file'])
@@ -86,7 +88,7 @@ for i, batch in enumerate(loader):
             print(data['file'])
     '''
     # print(data['inter_type'])
-    
+    '''
     for k, v in data['inter_type'].items():
         if v.int() != -1 and k in ["surround", "yield"]:
             print(data['file'])
@@ -94,14 +96,14 @@ for i, batch in enumerate(loader):
             file_id = batch['file'][0].split(".")[0]
             file_name = "./map/" + file_id+'.png'
             demo_fig = visualize_input_seq(data, save=True, filename=file_name)
-    
+    '''
     # for i in agents:
         
-    
+    '''
     for j in range(data['gt_pos'][0][:, data['agent_mask'][0], :].shape[1]):
         # print("***************************************************")
         print(data['gt_pos'][0][:, data['agent_mask'][0], :][:, j, :])
-    
+    '''
     # feat = kmeans_fuse(data, 4, 30)
     # print(feat)
     # print("real traj: ")
@@ -109,23 +111,23 @@ for i, batch in enumerate(loader):
     agents = data['agent']
     veh_type = data['traj_type'][:, data['agent_mask'][0], :].cpu().tolist()[0]
     #print(data['text'])
-    
+    type_lst[int(veh_type[0][0])] += 1
     #print(data['nei_text'])
 
     file_id = batch['file'][0].split(".")[0]
     file_name = "./map/" + file_id+'.png'
     map_name = "./map/" + file_id+'_map.png'
     gif_name = './map/' + file_id+'.gif'
-    demo_fig = visualize_input_seq(data, save=True, filename=file_name)
+    # demo_fig = visualize_input_seq(data, save=True, filename=file_name)
     # maps = visualize_map(data, save=True, path=map_name)
     '''
     if i > 200:
         break
     '''
-'''
+
 print(type_lst)
 np_lst = np.array(type_lst)
 per_lst = np_lst / np_lst.sum()
 print(per_lst)
-'''
+
 print("done")

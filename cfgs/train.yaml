@@ -71,7 +71,7 @@ LOSS:
       bbox: 2.0
       motion: 1.0
 
-MAX_EPOCHES: 80
+MAX_EPOCHES: 170
 METRIC:
   TYPE:
   - MMD
@@ -111,10 +111,10 @@ MODEL:
       ATTR_QUERY:
         POS_ENCODING_DIM: 252
 
-LOAD_CHECKPOINT_MODEL: False
+LOAD_CHECKPOINT_MODEL: True
 #LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/4f1qs78s/checkpoints/last.ckpt 71fedwlu
-LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/hrjcmqd5/checkpoints/last.ckpt
-LOAD_CHECKPOINT_TRAINER: False
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/pgxfmmn4/checkpoints/last.ckpt
+LOAD_CHECKPOINT_TRAINER: True
 
 TEST:
   BATCH_SIZE: 128

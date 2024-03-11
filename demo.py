@@ -155,21 +155,21 @@ openai.api_key = "EMPTY"
 openai.base_url = "http://localhost:8000/v1/"
 '''
 
-openai.api_key = "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"
+openai.api_key = "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"
 openai.base_url = "https://api.openai-proxy.com/v1/"
 
-query = "The cyclist in front signals to the rider behind before making a turn, ensuring that they both follow the same path and maintain a safe distance"
+query = "Genarate an overtaking scene"
 
 print("query: ")
 print(query)
 
-
+'''
 llm_result = llm_model.forward(query)
 '''
 with open('response.txt', 'rb') as f:
     llm_result = f.read()
 llm_result = llm_result.decode('utf-8')
-'''
+
 
 print('LLM inference result:')
 print(llm_result)
@@ -193,6 +193,6 @@ for example_idx in range(len(dataset.data_list)):
 gif_list, jpg = gen_scenario_from_gpt_text(llm_result, cfg, model, map_vecs, map_ids)
 
 print("img_list generated")
-gif_list[0].save("./usrstudy/demo_39.gif", save_all=True, append_images=gif_list[1:])
-jpg.save("./usrstudy/demo_39.jpg", "JPEG")
+gif_list[0].save("overtake_tr.gif", save_all=True, append_images=gif_list[1:])
+jpg.save("overtake_tr.jpg", "JPEG")
 

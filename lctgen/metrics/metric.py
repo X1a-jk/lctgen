@@ -326,8 +326,8 @@ class TrajMatch(Metric):
                 self.traj_metrics['mg_fde'].update(fde)
               if k == "yield":
                 # print(data["file"])
-                self.traj_metrics['yd_ade'].update(ade)
-                self.traj_metrics['yd_fde'].update(fde)
+                self.traj_metrics['jm_ade'].update(ade)
+                self.traj_metrics['jm_fde'].update(fde)
                 # yd_a.append(ade)
                 # yd_f.append(fde)
               if k == "surround":
@@ -336,8 +336,8 @@ class TrajMatch(Metric):
                 self.traj_metrics['sd_fde'].update(fde)
               if k == "jam":
                 # print(data["file"])
-                self.traj_metrics['jm_ade'].update(ade)
-                self.traj_metrics['jm_fde'].update(fde)
+                self.traj_metrics['yd_ade'].update(ade)
+                self.traj_metrics['yd_fde'].update(fde)
                 # jm_a.append(ade)
                 # jm_f.append(fde)
 

@@ -1,4 +1,5 @@
 import copy
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -272,7 +273,8 @@ class DETRAgentQuery(nn.Module):
             nei_feat = self.nei_decoder(tgt=nei_query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
             agent_feat = self.cross_attention(agent_feat, nei_feat, nei_feat)
             # agent_feat = self.cross_attention(nei_feat, agent_feat, agent_feat)
-        
+        #np.save("agent_feat.npy", agent_feat.detach().numpy())
+        #np.save("event_feat.npy", nei_feat.detach().numpy())
         # agent_feat = self.cross_attention(agent_feat, agent_feat, agent_feat)
         '''
         event_input = data["star_info"]

@@ -1,3 +1,4 @@
+import numpy as np
 import copy
 import os
 import pickle
@@ -9,10 +10,6 @@ from trafficgen.utils.data_process.agent_process import WaymoAgent
 from trafficgen.utils.utils import process_map, rotate, cal_rel_dir
 from lctgen.core.registry import registry
 
-from .description import descriptions
-from .description import NeighborCarsDescription
-from lctgen.models.neighbor_fuse import kmeans_fuse
-from lctgen.models.neighbor_fuse import binary_fuse, star_fuse, get_type_interactions
 
 @registry.register_dataset(name='WaymoOpenMotion')
 class WaymoOpenMotionDataset(Dataset):
@@ -130,8 +127,6 @@ class WaymoOpenMotionDataset(Dataset):
         data_file_path = os.path.join(self.data_path, file).strip()
         with open(data_file_path, 'rb') as f:
             datas = pickle.load(f)
-        print("--------------------data: -------------------")
-        print(datas.keys())
         data = self._process(datas, index)
         
         data['file'] = file

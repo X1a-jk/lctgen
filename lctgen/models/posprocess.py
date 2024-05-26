@@ -167,14 +167,16 @@ class PostProcess(nn.Module):
           outputs.append(output)
           continue
         
+        with_attribute = False
         if not with_attribute:
-          pos = torch.zeros((agent_num, 2), dtype=torch.float32)
+          # pos = torch.zeros((agent_num, 2), dtype=torch.float32)
+          pos = preds['pred_pos'].sample()[i, query_idx].cpu()
           speed = torch.zeros((agent_num), dtype=torch.float32)
           vel_heading = torch.zeros((agent_num), dtype=torch.float32)
           heading = torch.ones((agent_num), dtype=torch.float32) * (torch.pi / 2)
           bbox = torch.ones((agent_num, 2), dtype=torch.float32)
-          bbox[:, 0] = 1.8
-          bbox[:, 1] = 4.5
+          bbox[:, 0] = 3.8
+          bbox[:, 1] = 1.6
         else:
           speed = torch.clip(preds['pred_speed'][i,query_idx].cpu(), min=0.0).squeeze(-1)
           vel_heading = preds['pred_vel_heading'][i,query_idx].cpu().squeeze(-1)
@@ -186,7 +188,6 @@ class PostProcess(nn.Module):
             pos = preds['pred_pos'].sample()[i, query_idx].cpu()
             heading = torch.clip(preds['pred_heading'].sample()[i, query_idx].cpu(), min=-np.pi / 2, max=np.pi / 2)
             bbox = torch.clip(preds['pred_bbox'].sample()[i, query_idx].cpu(), min=0.1)
-
         all_agents = get_agent_pos_from_vec(vec, pos, speed, vel_heading, heading, bbox, self.use_rel_heading)
         agent_list = all_agents.get_list()
 

@@ -11,6 +11,7 @@ from lctgen.core.registry import registry
 
 from .description import descriptions
 from .description import NeighborCarsDescription
+from lctgen.models.neighbor_fuse import get_type_interactions
 
 @registry.register_dataset(name='WaymoOpenMotion')
 class WaymoOpenMotionDataset(Dataset):
@@ -80,6 +81,8 @@ class WaymoOpenMotionDataset(Dataset):
         data['nei_pos_i'] = txt_result['nei_pos_i']
         data['nei_pos_f'] = txt_result['nei_pos_f']
         data['type_pos'] = data['text'][:, 0]
+        inter_type = get_type_interactions(data, self.MAX_AGENT_NUM)
+        data['inter_type'] = inter_type
         return data, txt_result
 
     def _get_text(self, data):
@@ -103,23 +106,67 @@ class WaymoOpenMotionDataset(Dataset):
         return result
 
     def _get_item_helper(self, index):
-        file = self.data_list[index].strip()
+        cached = False
+        if not cached:
+            file = self.data_list[index].strip()
 
-        if len(file.split(' ')) > 1:
-            file, num = file.split(' ')
-            index = int(num)
+            if len(file.split(' ')) > 1:
+                file, num = file.split(' ')
+                index = int(num)
+            else:
+                index = -1
+
+            data_file_path = os.path.join(self.data_path, file).strip()
+            with open(data_file_path, 'rb') as f:
+                datas = pickle.load(f)
+            data = self._process(datas, index)
+        
+            data['file'] = file
+            data['index'] = index
+
+
+            root_path = "/home/ubuntu/DATA1/waymo_processed/"
+
+            if self.mode == 'train':
+                path = root_path + "train/"
+            else:
+                path = root_path + "eval/"
+
+            file_path = path + str(data['file'])
+            '''
+            with open(file_path, 'wb') as f:
+                pickle.dump(data, f)
+                f.close()
+            '''
+            data, txt_result = self._add_text_attr(data)
+      
+
         else:
-            index = -1
+            root_path = "/home/ubuntu/DATA1/waymo/"  # _processed/"
+            '''
+            if self.mode == 'train':
+                path = root_path + "train/"
+            else:
+                path = root_path + "eval/"
+            '''
+            path = root_path
+            file = self.data_list[index].strip()
 
-        data_file_path = os.path.join(self.data_path, file).strip()
-        with open(data_file_path, 'rb') as f:
-            datas = pickle.load(f)
-        data = self._process(datas, index)
-        
-        data['file'] = file
-        data['index'] = index
-        
-        data, txt_result = self._add_text_attr(data)
+            if len(file.split(' ')) > 1:
+                file, num = file.split(' ')
+                index = int(num)
+            else:
+                index = -1
+
+            # data_file_path = os.path.join(self.data_path, file).strip()
+
+            file_path = path + str(file)
+
+            with open(file_path, 'rb') as f:
+                data = pickle.load(f)
+                f.close()
+            data, txt_result = self._add_text_attr(data)
+
         return data
 
     def _process_agent(self, agent, sort_agent):

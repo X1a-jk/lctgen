@@ -43,18 +43,18 @@ for i, batch in enumerate(loader):
     # type_lst = [0, 0, 0, 0, 0, 0]
     # print(data['nei_pos_i'])
     # print(data['nei_pos_f'])
-    print(data['type_pos'])
+    #print(data['type_pos'])
     '''
     for j in range(data['gt_pos'][0][:, data['agent_mask'][0], :].shape[1]):
         print("***************************************************")
         print(data['gt_pos'][0][:, data['agent_mask'][0], :][:, j, :])
     '''
     
-    print(data.keys())
+    #print(data.keys())
     # print("real traj: ")
     # print(data["gt_pos"][0][:, data['agent_mask'][0], :][:, 0, :])
-    agents = data['agent']
-    veh_type = data['traj_type'][:, data['agent_mask'][0], :].cpu().tolist()[0]
+    # agents = data['agent']
+    # veh_type = data['traj_type'][:, data['agent_mask'][0], :].cpu().tolist()[0]
     #print(data['text'])
     
     #print(data['nei_text'])
@@ -64,7 +64,8 @@ for i, batch in enumerate(loader):
     map_name = "./map/" + file_id+'_map.png'
     gif_name = './map/' + file_id+'.gif'
     demo_fig = visualize_input_seq(data, save=True, filename=file_name)
-    maps = visualize_map(data, save=True, path=map_name)
+    #maps = visualize_map(data, save=True, path=map_name)
+    
     #demo_gif = visualize_output_seq(data, data)
     #demo_gif[0].save(gif_name, save_all=True, append_images=demo_gif[1:])
     # break

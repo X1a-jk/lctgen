@@ -43,13 +43,13 @@ class DETRAgentQuery(nn.Module):
 
         self.actor_query = nn.Parameter(torch.randn(1, dcfg.QUERY_NUM, d_model))
 
-        self.speed_head = MLP([d_model, dcfg.MLP_DIM, 1])
+        # self.speed_head = MLP([d_model, dcfg.MLP_DIM, 1])
         self.vel_heading_head = MLP([d_model, dcfg.MLP_DIM, 1])
 
         if self.use_attr_gmm:
             self.pos_head = MLP([d_model, dcfg.MLP_DIM, self.attr_gmm_k*(1+5)])
-            self.bbox_head = MLP([d_model, dcfg.MLP_DIM, self.attr_gmm_k*(1+5)])
-            self.heading_head = MLP([d_model, dcfg.MLP_DIM, self.attr_gmm_k*(1+2)])
+            # self.bbox_head = MLP([d_model, dcfg.MLP_DIM, self.attr_gmm_k*(1+5)])
+            # self.heading_head = MLP([d_model, dcfg.MLP_DIM, self.attr_gmm_k*(1+2)])
         else:
             self.pos_head = MLP([d_model, dcfg.MLP_DIM, 2])
             self.bbox_head = MLP([d_model, dcfg.MLP_DIM, 2])
@@ -86,6 +86,7 @@ class DETRAgentQuery(nn.Module):
         
         self.neighbor_txt_embedding = PositionalEncoding(d_model)
         
+
     def _init_motion_decoder(self, d_model, dcfg):
         self.m_K = self.motion_cfg.K
         self.m_dim = 2 * self.motion_cfg.STEP
@@ -165,13 +166,13 @@ class DETRAgentQuery(nn.Module):
 
     def _output_to_attrs(self, agent_feat):
         result = {}
-        result['pred_speed'] = self.speed_head(agent_feat)
+        # result['pred_speed'] = self.speed_head(agent_feat)
         result['pred_vel_heading'] = self.vel_heading_head(agent_feat)
         
         if not self.use_attr_gmm:
             result['pred_pos'] = self.pos_head(agent_feat)
-            result['pred_bbox'] = self.bbox_head(agent_feat)
-            result['pred_heading'] = self.heading_head(agent_feat)
+            # result['pred_bbox'] = self.bbox_head(agent_feat)
+            # result['pred_heading'] = self.heading_head(agent_feat)
         else:
             pos_out = self.pos_head(agent_feat).view([*agent_feat.shape[:-1], self.attr_gmm_k, -1])
             pos_weight_logit = pos_out[..., 0]
@@ -180,6 +181,7 @@ class DETRAgentQuery(nn.Module):
             pos_weight = torch.distributions.Categorical(logits=pos_weight_logit)
             result['pred_pos'] = (torch.distributions.mixture_same_family.MixtureSameFamily(pos_weight, pos_distri))
 
+            '''
             # bbox distribution： 2 dimension length width
             bbox_out = self.bbox_head(agent_feat).view([*agent_feat.shape[:-1], self.attr_gmm_k, -1])
             bbox_weight_logit = bbox_out[..., 0]
@@ -196,7 +198,8 @@ class DETRAgentQuery(nn.Module):
             heading_distri = self._output_to_dist(heading_param, 1)
             heading_weight = torch.distributions.Categorical(logits=heading_weight_logit)
             result['pred_heading'] = (torch.distributions.mixture_same_family.MixtureSameFamily(heading_weight, heading_distri))
-
+            '''
+            
         return result
 
     def forward(self, data):
@@ -224,6 +227,7 @@ class DETRAgentQuery(nn.Module):
         # Position MLP + Map Mask MLP
         query_mask = self.query_mask_head(agent_feat)
         memory_mask = self.memory_mask_head(line_enc)
+        
         
         use_neighbor_query, nei_query_input = data["nei_text"]
         use_neighbor_feat = True #not (False in use_neighbor_query.cpu().tolist())
@@ -254,4 +258,5 @@ class DETRAgentQuery(nn.Module):
         if self.motion_cfg.ENABLE:
             self._motion_predict(result, agent_feat)
             result['type_traj'] = type_traj
+            # result['inter_type'] = data['inter_type']
         return result

@@ -1,9 +1,10 @@
-SEED: 1
+SEED: 0
 SAVE_CHECKPOINT: true
 DATASET:
   CACHE: False
   ENABLE_OUT_RANGE_TRAJ: True
   TYPE: WaymoOpenMotion
+    #TYPE: Nuplan
   MAX_TIME_STEP: 50
   TIME_SAMPLE_GAP: 1
   AUGMENTATION:
@@ -31,7 +32,7 @@ DATASET:
     - 'action'
     NEGATIVE_SAMPLE_NUM: 10
     COUNT_BASE: 1
-    DISTANCE_BASE: 20
+    DISTANCE_BASE: 15
     SPEED_BASE: 2.5
     USE_PADDING: True
     PADDING: -1
@@ -46,7 +47,7 @@ EXPERIMENT_NAME: inference
 LOAD_CHECKPOINT_MODEL: true
 #LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/0ecxc4bo/checkpoints/epoch=99-step=53100.ckpt
 #LOAD_CHECKPOINT_PATH: checkpoints/example.ckpt
-LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/hrjcmqd5/checkpoints/epoch=189-step=100890.ckpt
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/version_None/checkpoints/epoch=99-step=53900-v3.ckpt
 LOAD_CHECKPOINT_TRAINER: true
 
 LOSS:

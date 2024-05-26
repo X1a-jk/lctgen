@@ -655,7 +655,9 @@ class AttrIndDescription(InitDescription):
         self.actor_dict[adix]['action'] = [self.padding_num] * 5 #action_step * action_dim
         self.actor_dict[adix]['traj_type'] = -2
 
+  '''
   def _pos_cnt(self, agents, agent_lanes, *args):
+    # 6area
     # compute the pos value for each agent
     self.actor_dict[0]['pos'] = -1
       
@@ -685,17 +687,82 @@ class AttrIndDescription(InitDescription):
       else:
         ang = 3
 
-      '''
-      if idx_x == 0 and idx_y == 0:
-        value = 0
-      elif idx_x == 1 and idx_y == 0:
-        value = 1
-      elif idx_x == 1 and idx_y == 1:
-        value = 2
-      else:
-        value = 3
-      '''
+
       self.actor_dict[aidx+1]['pos'] = ang
+  '''
+
+  '''
+  def _pos_cnt(self, agents, agent_lanes, *args):
+    # compute the pos value for each agent
+    # 4 area
+    self.actor_dict[0]['pos'] = -1
+      
+
+    for aidx, agent in enumerate(agents[1:]):
+      rel_pos = agent.position - agents[0].position
+      idx_x = 0 if rel_pos[0] > 0 else 1
+      idx_y = 0 if rel_pos[1] > 0 else 1
+
+      deg_rel = np.arctan2(rel_pos[1], rel_pos[0])
+
+      if deg_rel > np.pi:
+        deg_rel -= 2 * np.pi
+      elif deg_rel < -1 * np.pi:
+        deg_rel += 2*np.pi
+        
+      if deg_rel < np.pi/4 and deg_rel > -1 * np.pi / 4:
+        ang = 0
+      elif deg_rel <= -1 * np.pi / 4 and deg_rel > -3 * np.pi / 4:
+        ang = 1
+      elif deg_rel >= np.pi/ 4 and deg_rel < 3 * np.pi / 4:
+        ang = 3
+      else:
+        ang = 2
+
+      self.actor_dict[aidx+1]['pos'] = ang
+  '''
+
+  
+  def _pos_cnt(self, agents, agent_lanes, *args):
+    # compute the pos value for each agent
+    # 8 area
+    self.actor_dict[0]['pos'] = -1
+      
+
+    for aidx, agent in enumerate(agents[1:]):
+      rel_pos = agent.position - agents[0].position
+      idx_x = 0 if rel_pos[0] > 0 else 1
+      idx_y = 0 if rel_pos[1] > 0 else 1
+
+      deg_rel = np.arctan2(rel_pos[1], rel_pos[0])
+
+      if deg_rel > np.pi:
+        deg_rel -= 2 * np.pi
+      elif deg_rel < -1 * np.pi:
+        deg_rel += 2*np.pi
+        
+      if deg_rel < np.pi/8 and deg_rel > -1 * np.pi / 8:
+        ang = 0
+      elif deg_rel <= -1 * np.pi / 8 and deg_rel > -3 * np.pi / 8:
+        ang = 1
+      elif deg_rel <= -3 * np.pi / 8 and deg_rel > -5 * np.pi / 8:
+        ang = 2
+      elif deg_rel <= -5 * np.pi / 8 and deg_rel > -7 * np.pi / 8:
+        ang = 3
+
+
+      elif deg_rel >= np.pi/ 8 and deg_rel < 3 * np.pi / 8:
+        ang = 7
+      elif deg_rel >= 3 * np.pi/ 8 and deg_rel < 5 * np.pi / 8:
+        ang = 6
+      elif deg_rel >= 5 * np.pi/ 8 and deg_rel < 7 * np.pi / 8:
+        ang = 5
+      else:
+        ang = 4
+
+      self.actor_dict[aidx+1]['pos'] = ang
+  
+  
       
   def _direction_cnt(self, agents, agent_lanes, *args):
     # compute the direction value for each agent

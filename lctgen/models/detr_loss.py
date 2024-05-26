@@ -48,6 +48,7 @@ class SetCriterion(nn.Module):
         self.weight_dict = weight_dict
         self.eos_coef = eos_coef
         self.losses = losses
+
         self.use_center_mask = use_center_mask
         self.cfg = cfg
         
@@ -232,14 +233,14 @@ class SetCriterion(nn.Module):
                         init_pos_loss[rel_idx] *= weight_frequency[rel_type]
 
                     pos_loss = torch.gather(pos_loss, dim=1, index=min_index.unsqueeze(-1)).mean()
-                    final_pos_loss = final_pos_loss.mean() * 0.01
+                    final_pos_loss = final_pos_loss.mean() * 0.05
                     init_pos_loss = init_pos_loss.mean() * 0.01
                     type_pos_loss = type_pos_loss.mean() * 0.01
-                    pos_loss *= 0.01
+                    pos_loss *= 0.05
                     cls_loss = CLS(src_prob, min_index) * self.motion_cfg.CLS_WEIGHT
-                    cls_loss *= 0.01
-                    motion_loss = pos_loss + cls_loss + final_pos_loss + pos_loss + init_pos_loss
-                    motion_attr_loss['motion_pos'].append(pos_loss + cls_loss + final_pos_loss + pos_loss + init_pos_loss) 
+                    cls_loss *= 0.05
+                    motion_loss = pos_loss + cls_loss + final_pos_loss + pos_loss # + init_pos_loss
+                    motion_attr_loss['motion_pos'].append(pos_loss + cls_loss + final_pos_loss + pos_loss) # + init_pos_loss) 
 
                     if pred_other_attr:
                         src_heading = motion_attrs['heading']['src'][b_idx]
@@ -305,12 +306,15 @@ class SetCriterion(nn.Module):
         losses['attributes'] = 0
         
         attr_weights = self.cfg.LOSS.DETR.ATTR_WEIGHT
+        self.cal_attr = False
 
         for attr in attributes:
-            if self.use_attr_gmm and attr in ['pos', 'bbox', 'heading']:
-                B, N = outputs['pred_speed'].shape[:2]
+            
+            # if self.use_attr_gmm and attr in ['pos', 'bbox', 'heading'] and self.cal_attr:
+            if attr == "pos":
+                B, N = outputs['pred_vel_heading'].shape[:2]
                 D = 1 if attr == 'heading' else 2
-                log_prob_input = torch.zeros(B, N, D).to(outputs['pred_speed'].device)
+                log_prob_input = torch.zeros(B, N, D).to(outputs['pred_vel_heading'].device)
                 for i in range(B):
                     for sidx, tidx in zip(indices[i][0], indices[i][1]):
                         log_prob_input[i, sidx] = targets[i][attr][tidx]
@@ -320,8 +324,15 @@ class SetCriterion(nn.Module):
                     for sidx in indices[i][0]:
                         gmm_losses.append(neg_log_prob[i, sidx])
                 loss_attr = torch.stack(gmm_losses).mean()
+            
+
             else:
+                if attr in ['speed', 'bbox', 'heading']:
+                    continue
+                
+                
                 src_attrs = [outputs[f'pred_{attr}'][i][indices[i][0]] for i in range(len(indices))]
+                
                 pos_attrs = [outputs[f'pred_pos'].sample()[i,indices[i][0]] for i in range(len(indices))]
 
                 target_attrs = [targets[i][attr][indices[i][1]] for i in range(len(indices))]
@@ -354,12 +365,13 @@ class SetCriterion(nn.Module):
                 if attr == 'motion':
                     loss_attr, loss_motion = self._compute_motion_loss(src_attrs, src_probs, target_attrs, masks, loss_func, motion_attrs, gt_type, gt_pos_f, gt_pos_i, pos_attrs, gt_type_pos)
                 else:
+                    
                     loss_attr = [loss_func(src, tgt) if len(tgt) > 0 else [] for src, tgt in zip(src_attrs, target_attrs)]
 
                 loss_attr = [loss for i, loss in enumerate(loss_attr) if num_boxes[i] > 0]
                 
                 if len(loss_attr) == 0:
-                    loss_attr = torch.tensor(0.0).to(outputs['pred_speed'].device)
+                    loss_attr = torch.tensor(0.0).to(outputs['pred_pos'].device)
                     continue
 
                 loss_attr = torch.stack(loss_attr).mean() 
@@ -372,11 +384,12 @@ class SetCriterion(nn.Module):
                 for motion_attr, motion_loss in loss_motion.items():
                     motion_loss = [loss for i, loss in enumerate(motion_loss) if num_boxes[i] > 0]
                     if len(motion_loss) == 0:
-                        motion_loss = torch.tensor(0.0).to(outputs['pred_speed'].device)
+                        motion_loss = torch.tensor(0.0).to(outputs['pred_pos'].device)
                     else:
                         mean_value = torch.stack(motion_loss).mean()
                         losses[motion_attr] = mean_value
-        # print(losses)
+        
+
         return losses
 
     def loss_heatmap(self, outputs, data, indices, num_boxes, log=True):
@@ -474,6 +487,7 @@ class SetCriterion(nn.Module):
                 mode_losses.update(self.get_loss(loss, mode_output, data, indices, num_boxes))
                 full_loss += self.weight_dict[loss] * mode_losses[loss]
                 for subloss in mode_losses:
+
                     losses['{}_{}'.format(mode, subloss)] = mode_losses[subloss]
         
         losses['full_loss'] = full_loss

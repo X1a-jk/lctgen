@@ -158,15 +158,7 @@ openai.api_key = "EMPTY"
 openai.base_url = "http://localhost:8000/v1/"
 '''
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 openai.api_key = ""
-=======
-openai.api_key = ""
->>>>>>> b632ca3 (veh_type_embed)
-=======
-openai.api_key = ""
->>>>>>> e4896c3 (agent_type_embedding)
 openai.base_url = "https://api.openai-proxy.com/v1/"
 
 

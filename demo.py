@@ -158,7 +158,10 @@ openai.api_key = "EMPTY"
 openai.base_url = "http://localhost:8000/v1/"
 '''
 
+<<<<<<< HEAD
 openai.api_key = ""
+=======
+>>>>>>> b632ca3 (veh_type_embed)
 openai.base_url = "https://api.openai-proxy.com/v1/"
 
 query = "The school bus yields to the construction vehicle blocking the road"

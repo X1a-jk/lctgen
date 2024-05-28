@@ -19,10 +19,10 @@ def rotate(x, y, angle):
 
 
 class WaymoAgent:
-    def __init__(self, feature, vec_based_info=None, range=50, max_speed=30, from_inp=False):
+    def __init__(self, feature, vec_based_info=None, lrange=50, max_speed=30, from_inp=False):
         # index of xy,v,lw,yaw,type,valid
 
-        self.RANGE = range
+        self.RANGE = lrange
         self.MAX_SPEED = max_speed
 
         if from_inp:
@@ -110,15 +110,13 @@ class WaymoAgent:
         return agent_feat
 
     def get_rect(self, pad=0):
-
         l, w = (self.length_width[..., 0] + pad) / 2, (self.length_width[..., 1] + pad) / 2
         x1, y1 = l, w
         x2, y2 = l, -w
-
+        
         point1 = rotate(x1, y1, self.heading[..., 0])
         point2 = rotate(x2, y2, self.heading[..., 0])
         center = self.position
-
         x1, y1 = point1[..., [0]], point1[..., [1]]
         x2, y2 = point2[..., [0]], point2[..., [1]]
 
@@ -138,10 +136,12 @@ class WaymoAgent:
         for i in range(agent_num):
             rect = np.stack([p1[i], p2[i], p3[i], p4[i]])
             rect_list.append(rect)
+        
+
         return rect_list
 
     def get_polygon(self):
-        rect_list = self.get_rect(pad=0.25)
+        rect_list = self.get_rect(pad = 0.25)
 
         poly_list = []
         for i in range(len(rect_list)):

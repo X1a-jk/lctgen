@@ -130,8 +130,6 @@ class WaymoOpenMotionDataset(Dataset):
         data_file_path = os.path.join(self.data_path, file).strip()
         with open(data_file_path, 'rb') as f:
             datas = pickle.load(f)
-        print("--------------------data: -------------------")
-        print(datas.keys())
         data = self._process(datas, index)
         
         data['file'] = file
@@ -339,7 +337,7 @@ class WaymoOpenMotionDataset(Dataset):
         case_info['gt_pos'] = pos
         case_info['gt_bbox'] = gt_bbox
         case_info['gt_distribution'] = gt_distribution
-        case_info['gt_long_lat'] = gt_vec_based_coord[..., :2]
+        case_info['gt_long_lat'] = gt_vec_based_coord[..., :2]      
         case_info['gt_speed'] = gt_vec_based_coord[..., 2]
         case_info['gt_vel_heading'] = gt_vec_based_coord[..., 3]
         case_info['gt_heading'] = gt_vec_based_coord[..., 4]
@@ -355,9 +353,10 @@ class WaymoOpenMotionDataset(Dataset):
 
         agent = copy.deepcopy(data['all_agent'])
         other['traf'] = copy.deepcopy(data['traffic_light'])
+        
         max_time_step = self.data_cfg.MAX_TIME_STEP
         gap = self.data_cfg.TIME_SAMPLE_GAP
-        
+
         if index == -1:
             data['all_agent'] = data['all_agent'][0:max_time_step:gap]
             data['traffic_light'] = data['traffic_light'][0:max_time_step:gap]
@@ -366,7 +365,8 @@ class WaymoOpenMotionDataset(Dataset):
             data['all_agent'] = data['all_agent'][index:index+self.data_cfg.MAX_TIME_STEP:gap]
             data['traffic_light'] = data['traffic_light'][index:index+self.data_cfg.MAX_TIME_STEP:gap]
 
-        data['lane'], other['unsampled_lane'] = self._transform_coordinate_map(data)
+        
+        data['lane'], other['unsampled_lane'] = self._transform_coordinate_map(data) # 50*a*4, b*4
         other['lane'] = data['lane']
 
         # transform agent coordinate
@@ -385,10 +385,11 @@ class WaymoOpenMotionDataset(Dataset):
         agent = WaymoAgent(agent)
         other['gt_agent'] = agent.get_inp(act=True)
         other['gt_agent_mask'] = mask
-        other['center_info'] = data['center_info']
+        # other['center_info'] = data['center_info']
 
         # _process agent and lane data
         case_info["agent"], case_info["agent_mask"] = self._process_agent(data['all_agent'], False)
+    
         case_info['center'], case_info['center_mask'], case_info['center_id'], case_info['bound'], case_info['bound_mask'], \
         case_info['cross'], case_info['cross_mask'], case_info['rest'], case_info['rest_mask'] = process_map(
             data['lane'], data['traffic_light'], lane_range=self.RANGE, offest=0)

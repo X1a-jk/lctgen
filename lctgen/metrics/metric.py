@@ -169,8 +169,8 @@ class TrajMatch(Metric):
     self.traj_metrics['hau_dis'] = MeanMetric()
     self.traj_metrics['m_ade'] = MeanMetric()
     self.traj_metrics['m_fde'] = MeanMetric()
-    self.traj_metrics['min_ade'] = MeanMetric()
-    self.traj_metrics['min_fde'] = MeanMetric()
+    self.traj_metrics['min_ade'] = MinMetric()
+    self.traj_metrics['min_fde'] = MinMetric()
     self.traj_metrics['ade'] = {}
     self.traj_metrics['fde'] = {}
     self.K = 6
@@ -178,28 +178,19 @@ class TrajMatch(Metric):
         self.traj_metrics['ade'][i] = MeanMetric()
         self.traj_metrics['fde'][i] = MeanMetric()
 
-    self.traj_metrics['ot_ade'] = MeanMetric()
-    self.traj_metrics['fw_ade'] = MeanMetric()
-    self.traj_metrics['mg_ade'] = MeanMetric()
-    self.traj_metrics['yd_ade'] = MeanMetric()
-    self.traj_metrics['sd_ade'] = MeanMetric()
-    self.traj_metrics['jm_ade'] = MeanMetric()
+    # self.traj_metrics['ot_ade'] = MeanMetric()
+    # self.traj_metrics['fw_ade'] = MeanMetric()
+    # self.traj_metrics['mg_ade'] = MeanMetric()
+    # self.traj_metrics['yd_ade'] = MeanMetric()
+    # self.traj_metrics['sd_ade'] = MeanMetric()
+    # self.traj_metrics['jm_ade'] = MeanMetric()
 
-    self.traj_metrics['ot_fde'] = MeanMetric()
-    self.traj_metrics['fw_fde'] = MeanMetric()
-    self.traj_metrics['mg_fde'] = MeanMetric()
-    self.traj_metrics['yd_fde'] = MeanMetric()
-    self.traj_metrics['sd_fde'] = MeanMetric()
-    self.traj_metrics['jm_fde'] = MeanMetric()
-
-    '''
-    for i in range(self.K):
-        metrics_temp = {}
-        metrics_temp['ade'] = MeanMetric()
-        metrics_temp['fde'] = MeanMetric()
-        metrics_temp['scr'] = MeanMetric()
-        self.traj_metrics.append(metrics_temp)
-    '''
+    # self.traj_metrics['ot_fde'] = MeanMetric()
+    # self.traj_metrics['fw_fde'] = MeanMetric()
+    # self.traj_metrics['mg_fde'] = MeanMetric()
+    # self.traj_metrics['yd_fde'] = MeanMetric()
+    # self.traj_metrics['sd_fde'] = MeanMetric()
+    # self.traj_metrics['jm_fde'] = MeanMetric()
 
   def _position_match(self, real_agents, sim_agents):
     real_positions = np.array([agent.position[0] for agent in real_agents])
@@ -215,7 +206,7 @@ class TrajMatch(Metric):
     return real_indices, sim_indices
 
   def _compute_scr(self, output_scene):
-    IOU_THRESHOLD = 0.1
+    IOU_THRESHOLD = 0.0
 
     if 'pred_waymo_agents_T' in output_scene:
       agents_T = output_scene['pred_waymo_agents_T']
@@ -275,6 +266,7 @@ class TrajMatch(Metric):
         sim_traj = torch.tensor(model_output_scene[i]['rel_traj'][:, sim_idx][1:]).cpu()
 
         real_type = data['traj_type'][i][data['agent_mask'][i]][real_idx].cpu().item()
+        # real_type = data['veh_type'][i][data['agent_mask'][i]][real_idx].cpu().item()
         real_mask = motion_mask[:, real_idx][1:].cpu()
 
         if not real_mask.any():
@@ -291,25 +283,13 @@ class TrajMatch(Metric):
         self.traj_metrics['m_fde'].update(fde)
         min_ade.append(ade)
         min_fde.append(fde)
-        '''
-        if int(real_type) == 2 or int(real_type)==3:
-          self.traj_metrics['ade'][2].update(ade)
-          self.traj_metrics['ade'][3].update(ade)
-          self.traj_metrics['fde'][2].update(fde)
-          self.traj_metrics['fde'][3].update(fde)
 
-        if int(real_type) == 4 or int(real_type)==5:
-          self.traj_metrics['ade'][4].update(ade)
-          self.traj_metrics['ade'][5].update(ade)
-          self.traj_metrics['fde'][4].update(fde)
-          self.traj_metrics['fde'][5].update(fde)
-        '''
 
         self.traj_metrics['ade'][int(real_type)].update(ade)
         self.traj_metrics['fde'][int(real_type)].update(fde)
 
         self.traj_metrics['hau_dis'].update(hau)
-
+        '''
         inter_types = data['inter_type']
         for k,v in inter_types.items():
            if v[i].int() != -1:
@@ -340,19 +320,7 @@ class TrajMatch(Metric):
                 self.traj_metrics['yd_fde'].update(fde)
                 # jm_a.append(ade)
                 # jm_f.append(fde)
-
-      # print("ot_a: ")
-      # print(np.mean(np.array(ot_a)))
-      # print("ot_f: ")
-      # print(np.mean(np.array(ot_f)))
-      # print("yd_a: ")
-      # print(np.mean(np.array(yd_a)))
-      # print("yd_f: ")
-      # print(np.mean(np.array(yd_f)))
-      # print("jm_a: ")
-      # print(np.mean(np.array(jm_a)))
-      # print("jm_f: ")
-      # print(np.mean(np.array(jm_f)))
+        '''
 
       scr = self._compute_scr(model_output_scene[i])
       self.traj_metrics['scr'].update(scr)

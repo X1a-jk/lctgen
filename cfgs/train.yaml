@@ -1,9 +1,10 @@
-SEED: 42
+SEED: 0
 SAVE_CHECKPOINT: true
 DATASET:
   CACHE: False
   ENABLE_OUT_RANGE_TRAJ: True
-  TYPE: WaymoOpenMotion
+    #TYPE: WaymoOpenMotion
+  TYPE: Nuplan 
   MAX_TIME_STEP: 50
   TIME_SAMPLE_GAP: 1
   AUGMENTATION:
@@ -11,8 +12,8 @@ DATASET:
     RANDOM_MASK_RATE: 0.1
   TRAJ_TYPE: xy_theta_relative
   DATA_LIST:
-    TEST: val.txt
-    VAL: val.txt
+    TEST: train.txt
+    VAL: train.txt
     TRAIN: train.txt
   TEXT:
     TYPE: attr_ind
@@ -31,7 +32,7 @@ DATASET:
     - 'action'
     NEGATIVE_SAMPLE_NUM: 10
     COUNT_BASE: 1
-    DISTANCE_BASE: 20
+    DISTANCE_BASE: 10
     SPEED_BASE: 2.5
     USE_PADDING: True
     PADDING: -1
@@ -71,7 +72,7 @@ LOSS:
       bbox: 2.0
       motion: 1.0
 
-MAX_EPOCHES: 170
+MAX_EPOCHES: 100
 METRIC:
   TYPE:
   - MMD
@@ -105,23 +106,36 @@ MODEL:
         NLAYER: 1
         QUERY_NUM: 32
         TYPE: agent_decode
-        ATTR_GMM_ENABLE: True
+        ATTR_GMM_ENABLE: False #True
         ATTR_GMM_K: 5
   
       ATTR_QUERY:
         POS_ENCODING_DIM: 252
+        
+  HETERO_CFG:
+    edge_dim: 10    
+    hidden_dim: 512
+    num_heads: 8
+    out_dim: 512
+    num_layers: 2
+    feats_drop_rate: 0.1
+    slope: 0.02
+    beta: 0
+      
 
-LOAD_CHECKPOINT_MODEL: True
+
+
+LOAD_CHECKPOINT_MODEL: false
 #LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/4f1qs78s/checkpoints/last.ckpt 71fedwlu
-LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/pgxfmmn4/checkpoints/last.ckpt
-LOAD_CHECKPOINT_TRAINER: True
+LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/version_None/checkpoints/last-v5.ckpt
+LOAD_CHECKPOINT_TRAINER: false
 
 TEST:
   BATCH_SIZE: 128
   SHUFFLE: false
   NUM_WORKERS: 8
 TRAIN:
-  BATCH_SIZE: 128
+  BATCH_SIZE: 64
   LR: 0.0003
   OPTIMIZER: AdamW
   SCHEDULER:
@@ -132,6 +146,6 @@ TRAIN:
 VAL:
   BATCH_SIZE: 128
   NUM_WORKERS: 8
-VAL_INTERVAL: 10
+VAL_INTERVAL: 20
 VIS_INTERVAL: 10
 WANDB_PROJ: lctgen_attr_ind_motion

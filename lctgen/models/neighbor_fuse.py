@@ -124,8 +124,10 @@ def _get_all_traj(data, action_step, s_rate=None, sample_num=None):
     VALID_LIMIT = 100
     trajs = data['gt_pos']
     all_heading = data["future_heading"][:, data['agent_mask']]
+    
     traj_each_agent = {}
     heading_each_agent = {}
+
     for aix in range(trajs[:, data['agent_mask'], :].shape[1]):
         pos_agent = trajs[:, data['agent_mask'], :][:, aix, :]
         heading_agent = all_heading[:, aix]
@@ -184,11 +186,11 @@ def _get_neighbor_text(data, default, max_agents):
     action_dim = 1
     # future_angles = np.cumsum(self.data["future_heading"], axis=0)
     trajs = data['gt_pos']
-    all_heading = data["future_heading"][:, data['agent_mask']]
+    # all_heading = data["future_heading"].swapaxe(0,1)[:, data['agent_mask']]
     traj_each_agent = {}
     heading_each_agent = {}
     traj_each_agent, heading_each_agent = _get_all_traj(data, action_step, s_rate=None, sample_num=SAMPLE_NUM)
-    default_mask = np.zeros((max_agents**2), dtype=bool)
+    default_mask = np.zeros((max_agents, max_agents), dtype=bool)
     # print(heading_each_agent)
     if len(traj_each_agent) <= 1:
         default_mask[0] = 1
@@ -199,7 +201,7 @@ def _get_neighbor_text(data, default, max_agents):
     # default[0, :, 0] = 0  # w/o dis
     # default[0, :, 1] = 0  # w/o pos
     num_veh = len(heading_each_agent)
-    label_x = 0
+
     for i in range(num_veh):
         ego_heading = heading_each_agent[i]      
         # neighbor_trajs_tensor = -1 * torch.ones((max_agents, SAMPLE_NUM * 2))
@@ -210,7 +212,7 @@ def _get_neighbor_text(data, default, max_agents):
         
         for aidx in range(len(traj_each_agent)):
             if i == aidx:
-                label_x += 1
+
                 continue
             traj_temp = traj_each_agent[aidx]
             lst_temp = []
@@ -226,11 +228,11 @@ def _get_neighbor_text(data, default, max_agents):
             for k in lst_temp:
                 ll.append(k[1])
             ll.append(-1)
-            default[label_x] = torch.tensor(ll)
-            label_x += 1
+            default[i, aidx] = torch.tensor(ll)
+
         # neighbor_trajs_tensor[aidx] = torch.tensor(ll)
     # neighbor_trajs_tensor = neighbor_trajs_tensor.view((max_agents, -1))
-    default_mask[0:num_veh**2] = 1
+        default_mask[i, aidx] = 1
     return default_mask
     
 def pos_rel(ego_heading, ego_pos, other_pos):
@@ -290,7 +292,7 @@ def binary_fuse(data, max_agents = 32, dimension = 6):
         return default
     
 def star_fuse(data, max_agents = 32, dimension = 5*2+1):
-    default = -1 * torch.ones((max_agents**2, dimension))
+    default = -1 * torch.ones((max_agents, max_agents, dimension))
     try:
         star_mask = _get_neighbor_text(data, default, max_agents)
         return default, star_mask

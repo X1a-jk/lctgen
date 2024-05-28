@@ -140,7 +140,7 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
         alpha = 0.2
         linewidth = 6
     ax.axis('off')
-    '''
+    
     for j in range(center.shape[0]):
         traf_state = center[j, -1]
 
@@ -174,7 +174,7 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
             x0, y0, x1, y1, = other[j, :4]
             if x0 == 0: break
             ax.plot((x0, x1), (y0, y1), lane_color, linewidth=0.7, alpha=0.9)
-    '''
+    
     for i in range(len(agents)):
         agent_position = agents[i].position[0]
         '''
@@ -194,19 +194,21 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
                 x0, y0 = traj_i[j]
                 x1, y1 = traj_i[j + 1]
 
-                if abs(x0) < 80 and abs(y0) < 80 and abs(x1) < 80 and abs(y1) < 80:
-                    ax.plot((x0, x1), (y0, y1), '-', color=col, linewidth=3.2, marker='.', markersize=4)
+                if abs(x0) < 100 and abs(y0) < 100 and abs(x1) < 100 and abs(y1) < 100:
+                    ax.plot((x0, x1), (y0, y1), '-', color=col, linewidth=0.5, marker='.', markersize=4)
 
         agent = agents[i]
+        agent_type = int(agent.type[0][0])
+        colors_type = ["black", "red", "yellow"]
         rect = agent.get_rect()[0]
-        rect = plt.Polygon(rect, edgecolor='black',
+        rect = plt.Polygon(rect, edgecolor=colors_type[agent_type],
                            facecolor=col, linewidth=0.5, zorder=10000)
         ax.add_patch(rect)
 
     # ax.set_facecolor('black')
     plt.autoscale()
-    plt.xlim([-80, 80])
-    plt.ylim([-80, 80])
+    plt.xlim([-100, 100])
+    plt.ylim([-100, 100])
     
     if save:
         fig.savefig(path, dpi=100, bbox_inches='tight', pad_inches=0)
@@ -228,10 +230,10 @@ def draw_traj(traj, save_np=False, save=False, edge=None, path='../vis', abn_idx
     colors = list(mcolors.TABLEAU_COLORS)
     lane_color = 'black'
     alpha = 0.12
-    linewidth = 3
+    linewidth = 1.6
 
-    plt.xlim([-80, 80])
-    plt.ylim([-80, 80])
+    plt.xlim([-100, 100])
+    plt.ylim([-100, 100])
 
     ax.axis('on')
 

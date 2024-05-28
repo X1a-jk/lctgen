@@ -7,6 +7,7 @@ from lctgen.core.registry import registry
 
 from .base_model import BaseModel
 from .detr_model import DETRAgentQuery
+from .hetero_model import HeteroQuery
 from .utils import visualize_input, visualize_input_seq
 from .matcher import HungarianMatcher
 from .detr_loss import SetCriterion
@@ -33,7 +34,9 @@ class LCTGen(BaseModel):
   
   def _config_models(self):
     self.models = []
+    # self.trafficgen_model = HeteroQuery(self.config) #DETRAgentQuery(self.config)
     self.trafficgen_model = DETRAgentQuery(self.config)
+
     self.trafficgen_model.train()
     self.models.append(self.trafficgen_model)
 

@@ -8,9 +8,15 @@ from .blocks import MLP, pos2posemb, PositionalEncoding
 from .att_fuse import ScaledDotProductAttention, MultiHeadAttention
 from .neighbor_fuse import kmeans_fuse
 import time
+import dgl
+import dgl.function as fn
+import pandas as pd
+import json
+from openhgnn.models.SimpleHGN import SimpleHGN
+
 copy_func = copy.deepcopy
 
-class DETRAgentQuery(nn.Module):
+class HeteroQuery(nn.Module):
     def __init__(self, cfg):
         super().__init__()
 
@@ -22,9 +28,12 @@ class DETRAgentQuery(nn.Module):
         self.full_cfg = cfg
         self.hidden_dim = self.model_cfg['hidden_dim']
         self.motion_cfg = cfg.MODEL.MOTION
+        self.hete_cfg = cfg.MODEL.HETERO_CFG
 
         self._init_encoder()
         self._init_decoder()
+        # self.set_graph()
+        self.gnn = self.set_graph()
 
     def _init_encoder(self):
         self.CG_line = CG_stacked(5, self.hidden_dim)
@@ -44,6 +53,7 @@ class DETRAgentQuery(nn.Module):
         self.decoder = nn.TransformerDecoder(decoder_layer, num_layers=dcfg.NLAYER)
 
         self.actor_query = nn.Parameter(torch.randn(1, dcfg.QUERY_NUM, d_model))
+        # self.event_query = nn.Parameter(torch.randn(1, dcfg.QUERY_NUM, d_model))
 
         self.speed_head = MLP([d_model, dcfg.MLP_DIM, 1])
         self.vel_heading_head = MLP([d_model, dcfg.MLP_DIM, 1])
@@ -63,6 +73,8 @@ class DETRAgentQuery(nn.Module):
         if self.motion_cfg.ENABLE:
             self._init_motion_decoder(d_model, dcfg)
 
+        # self.gnn = SimpleHGN
+
 
         query_dim = self.model_cfg.ATTR_QUERY.POS_ENCODING_DIM
         self.query_embedding_layer = nn.Sequential(
@@ -77,27 +89,33 @@ class DETRAgentQuery(nn.Module):
         
         #neighbor
         self.head = 8
+
+        # self.vehicle_type_embedding = nn.Embedding((20, self.hidden_dim))
+
         '''      
         self.nei_self_attention = MultiHeadAttention(5, 10)
         self.agent_self_attention = MultiHeadAttention(3, 9)
         '''
 
-        
+        '''
         nei_decoder_layer = nn.TransformerDecoderLayer(**layer_cfg)
         self.nei_decoder =  nn.TransformerDecoder(nei_decoder_layer, num_layers=dcfg.NLAYER)
-        
-        nei_dim = 10 # modify here
+        '''
+
+        '''
+        nei_dim = 11 # modify here
         self.nei_embedding_layer = nn.Sequential(
             nn.Linear(nei_dim, d_model),
             nn.ReLU(),
             nn.Linear(d_model, d_model),
         )
+        '''
         
+        '''
         self.cross_attention = MultiHeadAttention(self.head, d_model)#ScaledDotProductAttention(d_model)
         
         self.neighbor_txt_embedding = PositionalEncoding(d_model)
-        
-        # self.vehicle_type_embedding = nn.Linear(1, self.hidden_dim, dtype=torch.float32)
+        '''
 
         '''
         event_decoder_layer = nn.TransformerDecoderLayer(**layer_cfg)
@@ -128,6 +146,7 @@ class DETRAgentQuery(nn.Module):
         polyline = lane_inp[..., :4]
         polyline_type = lane_inp[..., 4].to(int)
         polyline_traf = lane_inp[..., 5].to(int)
+
         polyline_type_embed = self.type_embedding(polyline_type)
         polyline_traf_embed = self.traf_embedding(polyline_traf)
 
@@ -206,8 +225,8 @@ class DETRAgentQuery(nn.Module):
             pos_weight = torch.distributions.Categorical(logits=pos_weight_logit)
             result['pred_pos'] = (torch.distributions.mixture_same_family.MixtureSameFamily(pos_weight, pos_distri))
 
-            # bbox distribution： 2 dimension length width
-            bbox_out = self.bbox_head(agent_feat).view([*agent_feat.shape[:-1], self.attr_gmm_k, -1])
+            # bbox distribution: 2 dimension length width
+            bbox_out = self.bbox_head(agent_feat).view([*agent_feat.shape[:-1], self.attr_gmm_k, -1])          
             bbox_weight_logit = bbox_out[..., 0]
             bbox_param = bbox_out[..., 1:]
 
@@ -224,12 +243,15 @@ class DETRAgentQuery(nn.Module):
             result['pred_heading'] = (torch.distributions.mixture_same_family.MixtureSameFamily(heading_weight, heading_distri))
 
         return result
+    
+    
 
     def forward(self, data):
 
         attr_cfg = self.model_cfg.ATTR_QUERY
         pos_enc_dim = attr_cfg.POS_ENCODING_DIM
         type_traj = data['traj_type']
+        veh_type = data['veh_type'].to(int)
         # Map Encoder
         b = data['lane_inp'].shape[0]
         device = data['lane_inp'].device
@@ -237,41 +259,37 @@ class DETRAgentQuery(nn.Module):
         empty_context = torch.ones([b, line_enc.shape[-1]]).to(device)
         line_enc, _ = self._map_feature_extract(line_enc, data['lane_mask'], empty_context)
         line_enc = line_enc[:, :data['center_mask'].shape[1]]
-        
 
         # Agent Query
         attr_query_input = data['text']
         attr_dim = attr_query_input.shape[-1]
+
         attr_query_encoding = pos2posemb(attr_query_input, pos_enc_dim//attr_dim)
         attr_query_encoding = self.query_embedding_layer(attr_query_encoding)
+
+        # vehicle_type_query = self.vehicle_type_embedding(veh_type)
+
         learnable_query_embedding = self.actor_query.repeat(b, 1, 1)
         query_encoding = learnable_query_embedding + attr_query_encoding
 
-        '''
-        veh_type = data['veh_type'].to(torch.float32)
-        vehicle_type_query = self.vehicle_type_embedding(veh_type)
-        query_encoding = torch.concat((query_encoding, vehicle_type_query), dim = -1)
-        # Generative Transformer
-        '''
+        #query_encoding = torch.concat((query_encoding, vehicle_type_query))
+
+        # learnable_event_embedding = self.event_query.repeat(b, 1, 1)
+        # use_neighbor_query, nei_query_input = data["nei_text"]
+        nei_query_input = data["star_info"]
+            # nei_query_encoding = pos2posemb(nei_query_input, feat_dim)
+        # nei_encoding = self.nei_embedding_layer(nei_query_input) #.unsqueeze(0)
         
+        # query_encoding = self.hetero_fuse(query_encoding, nei_query_input, veh_type)
+
+        # Generative Transformer
+
         agent_feat = self.decoder(tgt=query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
-        # Position MLP + Map Mask MLP
+        # Position MLP + Map Mask MLP    
         query_mask = self.query_mask_head(agent_feat)
         memory_mask = self.memory_mask_head(line_enc)
-
-        use_neighbor_query, nei_query_input = data["nei_text"]
-        use_neighbor_feat = True #not (False in use_neighbor_query.cpu().tolist())
-        if use_neighbor_feat:
-            nei_dim = nei_query_input.shape[-1]
-            feat_dim = pos_enc_dim//nei_dim
-            # nei_query_encoding = pos2posemb(nei_query_input, feat_dim)
-            nei_query_encoding = self.nei_embedding_layer(nei_query_input) #.unsqueeze(0)
-            nei_query_encoding = self.neighbor_txt_embedding(nei_query_encoding)
-            nei_feat = self.nei_decoder(tgt=nei_query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
-            agent_feat = self.cross_attention(agent_feat, nei_feat, nei_feat)
-            # agent_feat = self.cross_attention(nei_feat, agent_feat, agent_feat)
-
-
+        
+        
         pred_logits = torch.einsum('bqk,bmk->bqm', query_mask, memory_mask)
         
         if self.use_background:
@@ -287,7 +305,124 @@ class DETRAgentQuery(nn.Module):
         if self.motion_cfg.ENABLE:
             self._motion_predict(result, agent_feat)
             result['type_traj'] = type_traj
-            #result['veh_type'] = data['veh_type']
-
+            result['veh_traj'] = veh_type
         
         return result
+    
+    def set_graph(self):
+        args = self.hete_cfg
+        meta_graph = {}
+
+        type_vehicle = {-1: "MASK", 0: "VEHICLE", 1: "TRAFFIC_CONE", 2: "PEDESTRIAN", 3: "CYCLIST", 4: "TRAFFIC_BARRIER"}
+
+        for a in range(-1, 5):
+            for b in range(-1, 5):
+                if (type_vehicle[a], f"{a}{b}", type_vehicle[b]) not in meta_graph.keys():
+                    meta_graph[(type_vehicle[a], f"{a}{b}", type_vehicle[b])] = []
+
+        g = dgl.heterograph(meta_graph)
+        return SimpleHGN.build_model_from_args(self.hete_cfg, g)
+
+        
+
+
+    
+    def hetero_fuse(self, features, neighbor_features, node_types):
+        batch_s, num_veh, feature_dim = features.shape
+        f_device = features.device
+        f_dtype = features.dtype
+        # print(f_device)
+        batch_graphs = []
+        
+        for bs in range(batch_s):
+            # feature = features[bs]
+            meta_graph = {}
+            hdict = {}
+            type_vehicle = {-1: "MASK", 0: "VEHICLE", 1: "TRAFFIC_CONE", 2: "PEDESTRIAN", 3: "CYCLIST", 4: "TRAFFIC_BARRIER"}
+
+            idx_each_veh = [0 for i in range(num_veh)]
+            idx_type = [0 for i in range(len(type_vehicle))]
+                        
+            features_each_type = [list() for i in range(len(type_vehicle))]
+            features_edge_type = {}
+            for i in range(-1, 6):
+                for j in range(-1, 6):
+                    features_edge_type[f"{i}{j}"] = []
+
+            for i in range(num_veh):
+                type_temp = int(node_types[bs, i, 0])
+                idx_each_veh[i] = idx_type[type_temp]
+                idx_type[type_temp] += 1
+                features_each_type[type_temp].append(features[bs, i, :])
+
+            for j in range(num_veh):
+                for k in range(j+1, num_veh):
+                    type_j = int(node_types[bs, j, 0])
+                    type_k = int(node_types[bs, k, 0])                    
+                    if (type_vehicle[type_j], f"{type_j}{type_k}", type_vehicle[type_k]) not in meta_graph.keys():
+                        meta_graph[(type_vehicle[type_j], f"{type_j}{type_k}", type_vehicle[type_k])] = []
+                    meta_graph[(type_vehicle[type_j], f"{type_j}{type_k}", type_vehicle[type_k])].append((idx_each_veh[j], idx_each_veh[k]))
+                    
+                    features_edge_type[f"{type_j}{type_k}"].append(neighbor_features[bs, j, k, :])
+                    
+
+            for a in range(-1, 5):
+                for b in range(-1, 5):
+                    if (type_vehicle[a], f"{a}{b}", type_vehicle[b]) not in meta_graph.keys():
+                        meta_graph[(type_vehicle[a], f"{a}{b}", type_vehicle[b])] = []
+
+            g_t = dgl.heterograph(meta_graph, device = f_device)
+
+            for l in range(len(type_vehicle)):
+                if l != len(type_vehicle)-1:    
+                    if len(features_each_type[l]):
+                        ft = torch.vstack(features_each_type[l])
+                        g_t.nodes[type_vehicle[l]].data['h'] = ft.to(f_device)
+                        if type_vehicle[l] not in hdict.keys():
+                            hdict[type_vehicle[l]] = []
+                        hdict[type_vehicle[l]].append(ft.to(f_device))
+                else:
+                    if len(features_each_type[l]):
+                        ft = torch.vstack(features_each_type[l])
+                        g_t.nodes[type_vehicle[-1]].data['h'] = ft.to(f_device)
+                        if type_vehicle[-1] not in hdict.keys():
+                            hdict[type_vehicle[-1]] = []
+                        hdict[type_vehicle[-1]].append(ft.to(f_device))
+
+            
+
+            for m in range(len(type_vehicle)):
+                for n in range(len(type_vehicle)):
+                    if len(features_edge_type[f"{m}{n}"]):
+                        ft = torch.vstack(features_edge_type[f"{m}{n}"])
+                        g_t.edges[f"{m}{n}"].data['h'] = ft.to(f_device)
+            
+        #     batch_graphs.append(g)
+
+        # # print(batch_graphs)
+        # bhg = dgl.batch(batch_graphs)
+        # gnn = 
+            # in_dim, out_dim * num_heads
+            # [args.hidden_dim], 
+            for k, v in hdict.items():
+                hdict[k] = torch.vstack(v)
+       
+
+            feature, graph_batch = self.gnn(g_t, hdict)
+            
+        # graphs = dgl.unbatch(graph_batch)
+
+        # feature = []
+        # for gp in graphs:
+        #     gp = dgl.to_homogeneous(gp, ndata = 'h')
+        #     print(gp.ndata['h'].shape)
+        #     feature.append(gp.ndata['h'])
+
+        # feature = torch.vstack(feature).to(f_device)
+        # print(feature.shape)
+            feature = feature.view((num_veh, feature_dim))
+            features[bs] = feature
+
+        return features
+    
+    

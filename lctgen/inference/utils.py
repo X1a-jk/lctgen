@@ -61,8 +61,6 @@ def get_map_data_batch(map_id, cfg):
   cfg['DATASET']['CACHE'] = False
   dataset = registry.get_dataset(dataset_type)(cfg, 'train')
   dataset.data_list = [map_id]
-  print(map_id)
-  
   collate_fn = fc_collate_fn
   loader = DataLoader(dataset, batch_size=1, shuffle=False, pin_memory = False,
                   drop_last=False, num_workers=1, collate_fn=collate_fn)

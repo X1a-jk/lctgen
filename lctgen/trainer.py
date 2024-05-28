@@ -17,6 +17,7 @@ def current_time_str():
 
 from .datasets.utils import fc_collate_fn
 from lctgen.core.registry import registry
+import time
 
 class BaseTrainer():
     def __init__(self, config, optional_callbacks = []):
@@ -45,9 +46,12 @@ class BaseTrainer():
         print('GPU: ', self.config.GPU)
 
         seed_everything(self.config.SEED, workers=True)
+        init_time = time.time()
         self._config_save_dir()
         self._config_logger()
         self._config_data()
+        data_time = time.time()
+        print(f"Load data: {data_time-init_time}")
         self._config_metric()
         self._set_checkpoint_monitor()
         self._set_lightning_model()
@@ -113,8 +117,6 @@ class BaseTrainer():
 
         pathlib.Path(self.save_dir).mkdir(parents=True, exist_ok=True)
 
-        print(self.save_dir)
-
         # save config file
         config_dir = os.path.join(self.save_dir, 'config.yaml')
         with open(config_dir, 'w') as file:
@@ -167,13 +169,15 @@ class BaseTrainer():
         return test_trainer
 
     def train(self):
+        begin_time = time.time()
         if self.config.LOAD_CHECKPOINT_TRAINER and self.config.LOAD_CHECKPOINT_PATH is not None:
             ckpt_path = self.config.LOAD_CHECKPOINT_PATH
             print('loading training state from checkpoint: {}'.format(ckpt_path))
         else:
             ckpt_path = None
         self.trainer.fit(self.lightning_model, self.data_loaders['train'], self.data_loaders['val'], ckpt_path=ckpt_path)
-        
+        end_time = time.time()
+        print(f"fit time: {end_time-begin_time}")
         try:
             ckpt_path = self.trainer.checkpoint_callback.best_model_path
             print('perform evaluation with best checkpoint on a single GPU')

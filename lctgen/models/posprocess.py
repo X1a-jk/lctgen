@@ -26,7 +26,7 @@ class PostProcess(nn.Module):
         if self.cfg.MODEL.MOTION.PRED_MODE == 'mlp':
           a_motion = motion[idx]
         elif self.cfg.MODEL.MOTION.PRED_MODE in ['mlp_gmm', 'mtf']:
-          #m_idx = np.argmax(motion_prob[idx])
+          # m_idx = np.argmax(motion_prob[idx])
           m_idx = type_traj[idx][0]
           a_motion = motion[idx][m_idx]
         traj = a_motion
@@ -181,12 +181,12 @@ class PostProcess(nn.Module):
           if not self.use_attr_gmm:
             pos = preds['pred_pos'][i,query_idx].cpu()
             heading = preds['pred_heading'][i,query_idx].cpu().squeeze(-1)
-            bbox = 0.7 * torch.clip(preds['pred_bbox'][i,query_idx].cpu(), min=0.0)
+            bbox = torch.clip(preds['pred_bbox'][i,query_idx].cpu(), min=0.0)
           else:
             pos = preds['pred_pos'].sample()[i, query_idx].cpu()
             heading = torch.clip(preds['pred_heading'].sample()[i, query_idx].cpu(), min=-np.pi / 2, max=np.pi / 2)
-            bbox = 0.7 * torch.clip(preds['pred_bbox'].sample()[i, query_idx].cpu(), min=0.1)
-
+            bbox = torch.clip(preds['pred_bbox'].sample()[i, query_idx].cpu(), min=0.1)
+        print(f"{bbox=}")
         all_agents = get_agent_pos_from_vec(vec, pos, speed, vel_heading, heading, bbox, self.use_rel_heading)
         agent_list = all_agents.get_list()
 

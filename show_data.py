@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 from trafficgen.utils.data_process.agent_process import WaymoAgent
 from PIL import Image
-
+import time
 from lctgen.datasets.utils import fc_collate_fn
 from lctgen.config.default import get_config
 from lctgen.core.registry import registry
@@ -14,7 +14,7 @@ import copy
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-from lctgen.models.neighbor_fuse import kmeans_fuse
+from lctgen.models.neighbor_fuse import kmeans_fuse, star_fuse
 
 cfg_file = './cfgs/inference.yaml'
 cfg = get_config(cfg_file)
@@ -25,16 +25,17 @@ model.eval()
 '''
 dataset_type = cfg.DATASET.TYPE
 cfg.DATASET['CACHE'] = False
-dataset = registry.get_dataset(dataset_type)(cfg, 'train')
-
+dataset = registry.get_dataset(dataset_type)(cfg, 'test')
 '''
 example_idx = 27 #@param {type:"slider", min:0, max:29, step:1}
 dataset.data_list = [dataset.data_list[example_idx]]
 '''
 
+print(len(dataset))
+
 collate_fn = fc_collate_fn
 loader = DataLoader(dataset, batch_size=1, shuffle=True, pin_memory = False,
-                drop_last=False, num_workers=1, collate_fn=collate_fn)
+                drop_last=False, num_workers=10, collate_fn=collate_fn)
 
 def kmeans(data, k, max_time = 10):
     init_pos_batch = []
@@ -73,21 +74,21 @@ def create_agent(data):
     agents = [WaymoAgent(agent[i:i+1]).length_width[0] for i in range(agent.shape[0]) if agent_mask[i]]
     return agents
 
-
-type_lst = [0,0,0,0,0,0]
+print(f"total capacity: {len(loader)}")
+type_lst = [0,0,0]
+init_time = time.time()
 for i, batch in enumerate(loader):
     data = batch
     # print(data['file'])
     # print(data['traj_type'].shape)
     # type_lst = [0, 0, 0, 0, 0, 0]
-    agents = create_agent(data)
+    # agents = create_agent(data)
     '''
     for i in agents:
         if i[0]>=2.0 or i[1]>=2.0:
             continue
             print(data['file'])
     '''
-    # print(data['inter_type'])
     '''
     for k, v in data['inter_type'].items():
         if v.int() != -1 and k in ["surround", "yield"]:
@@ -104,30 +105,52 @@ for i, batch in enumerate(loader):
         # print("***************************************************")
         print(data['gt_pos'][0][:, data['agent_mask'][0], :][:, j, :])
     '''
+
     # feat = kmeans_fuse(data, 4, 30)
     # print(feat)
     # print("real traj: ")
     # print(data["gt_pos"][0][:, data['agent_mask'][0], :][:, 0, :])
-    agents = data['agent']
-    veh_type = data['traj_type'][:, data['agent_mask'][0], :].cpu().tolist()[0]
+    # agents = data['agent']
+    veh_type = data['veh_type'][:, data['agent_mask'][0], :].cpu().tolist()[0]
     #print(data['text'])
-    type_lst[int(veh_type[0][0])] += 1
+    for tp in veh_type:
+        type_lst[int(tp[0])] += 1
     #print(data['nei_text'])
+    # root_path = "/home/ubuntu/DATA2/nuplan/processed/boston/"
 
-    file_id = batch['file'][0].split(".")[0]
-    file_name = "./map/" + file_id+'.png'
-    map_name = "./map/" + file_id+'_map.png'
-    gif_name = './map/' + file_id+'.gif'
-    # demo_fig = visualize_input_seq(data, save=True, filename=file_name)
+    # file_path = root_path + data['file'][0]
+    # with open(file_path, 'wb') as f:
+    #     pickle.dump(data, f)
+    #     f.close()
+    # print(batch['file'][0])
+    
+    file_id = batch['file'][0].split(".")[1]
+    # print(f"{file_id=}")
+    if data["num_veh"].cpu().int().item() >= 8:
+        # print(f'{data["agent_mask"].sum()=}')
+        print(f"{file_id=}")
+        file_name = "./nuplan_vis/" + file_id+'.png'
+        # map_name = "./nuplan_vis/" + file_id+'_map.png'
+        gif_name = './nuplan_vis/' + file_id+'.gif'
+        '''
+        for idx in data['num_veh'].cpu().tolist():
+            if idx > 1:
+                print(data['file'].cpu().tolist()[idx])
+        '''
+        # break
+        demo_fig = visualize_input_seq(data, save=True, filename=file_name)
     # maps = visualize_map(data, save=True, path=map_name)
-    '''
-    if i > 200:
-        break
-    '''
+    
+    if i % 100 == 0:
+        pre_time = time.time()
+        print(f"processed: {i}, total: {len(loader)}")
+        print(f"current time: {pre_time-init_time}")
+
 
 print(type_lst)
 np_lst = np.array(type_lst)
 per_lst = np_lst / np_lst.sum()
 print(per_lst)
+
 
 print("done")

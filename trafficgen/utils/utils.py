@@ -191,6 +191,7 @@ def process_lane(lane, max_vec, lane_range, offset=-40):
         # type
         vector[..., 4] = points[:, 1:, 2]
         # traffic light
+   
         vector[..., 5] = points[:, 1:, 4]
         vec_mask = masks[:, :-1] * masks[:, 1:]
         vector[vec_mask == 0] = 0
@@ -234,13 +235,14 @@ def process_lane(lane, max_vec, lane_range, offset=-40):
 
 def process_map(lane, traf=None, center_num=384, edge_num=128, lane_range=60, offest=-40, rest_num=192):
     lane_with_traf = np.zeros([*lane.shape[:-1], 5])
-    lane_with_traf[..., :4] = lane
+
+    lane_with_traf[:, :, :4] = lane
 
     lane_id = lane[..., -1]
     b_s = lane_id.shape[0]
 
-    # print(traf)
-    if traf is not None:
+    
+    if (traf is not None) and len(traf) > 0:
         for i in range(b_s):
             traf_t = traf[i]
             lane_id_t = lane_id[i]
@@ -251,21 +253,30 @@ def process_map(lane, traf=None, center_num=384, edge_num=128, lane_range=60, of
                 state = a_traf[-2]
                 lane_idx = np.where(lane_id_t == control_lane_id)
                 lane_with_traf[i, lane_idx, -1] = state
-        lane = lane_with_traf
+    lane = lane_with_traf
 
     # lane = np.delete(lane_with_traf,-2,axis=-1)
     lane_type = lane[0, :, 2]
-    center_1 = lane_type == 1
-    center_2 = lane_type == 2
-    center_3 = lane_type == 3
-    center_ind = center_1 + center_2 + center_3
+    
+    tps = set()
+    for it in lane_type:
+        tps.add(it)
 
-    boundary_1 = lane_type == 15
-    boundary_2 = lane_type == 16
-    bound_ind = boundary_1 + boundary_2
 
-    cross_walk = lane_type == 18
-    speed_bump = lane_type == 19
+    center_0 = lane_type == 0.0
+    center_1 = lane_type == 1.0
+    center_2 = lane_type == 2.0
+    center_3 = lane_type == 3.0
+    center_ind = center_0 + center_1 + center_2 + center_3
+
+    boundary_1 = lane_type == 5.0
+    boundary_2 = lane_type == 6.0
+    boundary_3 = lane_type == 7.0
+    boundary_4 = lane_type == 8.0
+    bound_ind = boundary_1 + boundary_2 + boundary_3 + boundary_4
+
+    cross_walk = lane_type == 18.0
+    speed_bump = lane_type == 19.0
     cross_ind = cross_walk + speed_bump
 
     rest = ~(center_ind + bound_ind + cross_walk + speed_bump + cross_ind)
@@ -277,6 +288,53 @@ def process_map(lane, traf=None, center_num=384, edge_num=128, lane_range=60, of
 
     return cent, cent_mask, cent_id, bound, bound_mask, cross, cross_mask, rest, rest_mask
 
+def process_map_nuplan(lane, traf=None, center_num=384, edge_num=128, lane_range=60, offest=-40, rest_num=192):
+    lane_with_traf = np.zeros([*lane.shape[:-1], 5])
+
+    lane_with_traf[:, :, :4] = lane
+
+    lane_id = lane[..., -1]
+    b_s = lane_id.shape[0]
+
+    state_to_int = {"TRAFFIC_LIGHT_RED":0, "TRAFFIC_LIGHT_GREEN":1, "TRAFFIC_LIGHT_YELLOW":2, "TRAFFIC_LIGHT_UNKOWN":3}
+
+    if traf is not None:
+        for i in range(b_s):
+            traf_t = traf[i]
+            traf_t = np.array(traf_t).reshape((-1, 6))
+
+            lane_id_t = lane_id[i]
+            for a_traf in traf_t:
+                # print(a_traf)
+                control_lane_id = a_traf[0]
+                state = a_traf[-2]
+                lane_idx = np.where(lane_id_t == control_lane_id)
+                lane_with_traf[i, lane_idx, -1] = state_to_int[state]
+        lane = lane_with_traf
+
+    # lane = np.delete(lane_with_traf,-2,axis=-1)
+    lane_type = lane[0, :, 2]
+    tps = set()
+    for it in lane_type:
+        tps.add(it)
+
+    center_1 = lane_type == 1.0
+    center_ind = center_1
+
+    boundary_1 = lane_type == 4.0
+    bound_ind = boundary_1
+
+    cross_walk = lane_type == 5.0
+    cross_ind = cross_walk
+
+    rest = ~(center_ind + bound_ind + cross_ind)
+
+    cent, cent_mask, cent_id = process_lane(lane[:, center_ind], center_num, lane_range, offest)
+    bound, bound_mask, _ = process_lane(lane[:, bound_ind], edge_num, lane_range, offest)
+    cross, cross_mask, _ = process_lane(lane[:, cross_ind], 32, lane_range, offest)
+    rest, rest_mask, _ = process_lane(lane[:, rest], rest_num, lane_range, offest)
+
+    return cent, cent_mask, cent_id, bound, bound_mask, cross, cross_mask, rest, rest_mask
 
 def get_time_str():
     return datetime.datetime.now().strftime("%y_%m_%d-%H_%M_%S")
@@ -360,27 +418,39 @@ def transform_to_agent(agent_i, agent, lane):
 
 
 def get_type_class(line_type):
-    if line_type in range(1, 4):
+    # if line_type in range(1, 4):
+    #     return 'center_lane'
+    # elif line_type == 6:
+    #     return RoadLineType.BROKEN_SINGLE_WHITE
+    # elif line_type == 7:
+    #     return RoadLineType.SOLID_SINGLE_WHITE
+    # elif line_type == 8:
+    #     return RoadLineType.SOLID_DOUBLE_WHITE
+    # elif line_type == 9:
+    #     return RoadLineType.BROKEN_SINGLE_YELLOW
+    # elif line_type == 10:
+    #     return RoadLineType.BROKEN_DOUBLE_YELLOW
+    # elif line_type == 11:
+    #     return RoadLineType.SOLID_SINGLE_YELLOW
+    # elif line_type == 12:
+    #     return RoadLineType.SOLID_DOUBLE_YELLOW
+    # elif line_type == 13:
+    #     return RoadLineType.PASSING_DOUBLE_YELLOW
+    # elif line_type == 15:
+    #     return RoadEdgeType.BOUNDARY
+    # elif line_type == 16:
+    #     return RoadEdgeType.MEDIAN
+    # else:
+    #     return 'other'
+    if line_type == 0 or line_type == 1:
         return 'center_lane'
-    elif line_type == 6:
+    elif line_type == 2:
         return RoadLineType.BROKEN_SINGLE_WHITE
-    elif line_type == 7:
+    elif line_type == 3:
         return RoadLineType.SOLID_SINGLE_WHITE
-    elif line_type == 8:
-        return RoadLineType.SOLID_DOUBLE_WHITE
-    elif line_type == 9:
-        return RoadLineType.BROKEN_SINGLE_YELLOW
-    elif line_type == 10:
-        return RoadLineType.BROKEN_DOUBLE_YELLOW
-    elif line_type == 11:
-        return RoadLineType.SOLID_SINGLE_YELLOW
-    elif line_type == 12:
-        return RoadLineType.SOLID_DOUBLE_YELLOW
-    elif line_type == 13:
-        return RoadLineType.PASSING_DOUBLE_YELLOW
-    elif line_type == 15:
+    elif line_type == 4:
         return RoadEdgeType.BOUNDARY
-    elif line_type == 16:
+    elif line_type == 5:
         return RoadEdgeType.MEDIAN
     else:
         return 'other'

@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.distributions import Categorical
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR, MultiStepLR, SequentialLR, LambdaLR
 # from lion_pytorch import Lion
-
+import time
 import numpy as np
 
 import wandb
@@ -57,10 +57,11 @@ class BaseModel(pl.LightningModule):
       raise NotImplementedError
     
     def _batch_forward(self, batch, mode, batch_idx):
+      init_time = time.time()
       model_output = self.forward(batch, mode)
-
+      forward_time = time.time()
       loss = self._compute_loss(model_output)
-
+      loss_time = time.time()
       if type(loss) is not dict:
         loss = {'full_loss': loss}
 

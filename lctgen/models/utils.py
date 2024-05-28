@@ -10,6 +10,7 @@ from PIL import Image
 from trafficgen.utils.visual_init import get_heatmap, draw, draw_seq, draw_seq_map
 from trafficgen.utils.utils import get_agent_coord_from_vec
 from trafficgen.utils.data_process.agent_process import WaymoAgent
+from matplotlib.patches import Polygon
 
 def visualize_decoder(data, decode_probs):
   # visualize heatmap of the first element in the batch
@@ -47,17 +48,20 @@ def visualize_map(data, save=False, path=None):
   center = data["center"][0].cpu().numpy()
   rest = data["rest"][0].cpu().numpy()
   bound = data["bound"][0].cpu().numpy()
+  #bound = data["boundaries"][0].cpu().numpy()
 
   return draw_seq_map(center, other=rest, edge=bound, save_np=True, save=save, path=path)
 
 
 def visualize_input_seq(data, agents = None, traj=None, sort_agent=True, clip_size=True, save=False, filename=None):
-  MIN_LENGTH = 4.0
-  MIN_WIDTH = 1.5
+  MIN_LENGTH = 0.2
+  MIN_WIDTH = 0.1
 
   center = data["center"][0].cpu().numpy()
   rest = data["rest"][0].cpu().numpy()
   bound = data["bound"][0].cpu().numpy()
+  # bound = data["boundaries"][0].cpu().numpy()
+
   agent_mask = data["agent_mask"][0].cpu().numpy()
   
   if agents is None:

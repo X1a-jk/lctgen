@@ -44,7 +44,6 @@ class Registry():
                     to_register, assert_type
                 )
             register_name = to_register.__name__ if name is None else name
-
             cls.mapping[_type][register_name] = to_register
             return to_register
 
@@ -59,8 +58,7 @@ class Registry():
 
         :param name: Key with which the metric will be registered.
             If :py:`None` will use the name of the class
-        """
-
+        """       
         return cls._register_impl(
             "dataset", to_register, name, assert_type=Dataset
         )

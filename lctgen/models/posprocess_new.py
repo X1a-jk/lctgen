@@ -26,8 +26,8 @@ class PostProcess(nn.Module):
         if self.cfg.MODEL.MOTION.PRED_MODE == 'mlp':
           a_motion = motion[idx]
         elif self.cfg.MODEL.MOTION.PRED_MODE in ['mlp_gmm', 'mtf']:
-          # m_idx = np.argmax(motion_prob[idx])
-          m_idx = type_traj[idx][0]
+          m_idx = np.argmax(motion_prob[idx])
+          # m_idx = type_traj[idx][0]
           a_motion = motion[idx][m_idx]
         traj = a_motion
         rel_traj = np.concatenate([np.zeros((1, 2)), traj], axis=0)
@@ -65,8 +65,8 @@ class PostProcess(nn.Module):
       headings = []
       vels = []
       for idx in range(len(output['agent'])):
-        #m_idx = np.argmax(motion_prob[idx])
-        m_idx = type_traj[idx][0]
+        m_idx = np.argmax(motion_prob[idx])
+        # m_idx = type_traj[idx][0]
         a_heading = future_heading[idx][m_idx]
         a_vel = future_vel[idx][m_idx]
 
@@ -96,9 +96,13 @@ class PostProcess(nn.Module):
           Shape= [batch_size, num_queries, num_classes] without sigmoid
       data (dict): data of the batch
       '''
-      pred_logits = preds['pred_logits'].cpu()
-      bz, nq, nc = pred_logits.shape
+      # 256 * 1 * 6 * 49
+      
+      # pred_logits = preds['pred_logits'].cpu()
+      bz, nq, nc = data['center'].shape #pred_logits.shape
       bg_class_ind = nc - 1
+
+      
     
       if num_limit is not None:
         bz = min(bz, num_limit)
@@ -109,50 +113,52 @@ class PostProcess(nn.Module):
         center = data['center'][i].cpu()
         center_mask = data['center_mask'][i].cpu().numpy()
         agent_mask = data['agent_mask'][i].cpu().numpy()
+
         output['center'] = center
         output['file'] = data['file'][i]
         output['center_id'] = data['center_id'][i]
         bound_i = data['bound'][i][:, :2].cpu()
         center_i = data['center'][i][:, :2].cpu()
-        # get the predicted class for each query
+        # get the predicted class for each query       
         # remove non_mask category before argmax
-        if self.use_background:
-          query_logits = pred_logits[i, :, :-1].clone()
-          query_logits[:, ~center_mask] = -float('inf')
-          query_logits = torch.cat([query_logits, pred_logits[i, :, -1:]], dim=-1)
-          query_num = nq
-          pred_indices = query_logits.argmax(-1)
-        else:
-          query_logits = pred_logits[i].clone()
-          query_logits[:, ~center_mask] = -float('inf')
-          query_num = np.sum(agent_mask)
-          pred_indices = query_logits.argmax(-1)[agent_mask]
-
-        pred_scores = query_logits.softmax(-1)[torch.arange(query_num), pred_indices]
-
-        if self.use_background:
-          bg_mask = pred_indices == bg_class_ind
-          query_idx = torch.arange(query_num)[~bg_mask]
-          vec_idx = pred_indices[~bg_mask]
-          all_vec_scores = pred_scores[~bg_mask]
         
-          # remove query idx with the same vec idx according to prediction score
-          unique_vec_idx = torch.unique(vec_idx)
-          unique_query_idx = []
-          for vec in unique_vec_idx:
-            vec_queries = query_idx[vec_idx == vec]
-            vec_scores = all_vec_scores[vec_idx == vec]
-            unique_query_idx.append(vec_queries[vec_scores.argmax()].item())
-          query_idx = torch.tensor(unique_query_idx)
-          vec_idx = unique_vec_idx
-        
-        else:
-          query_idx = torch.arange(query_num)
-          vec_idx = pred_indices
-          all_vec_scores = pred_scores
+        # if self.use_background:
+        #   query_logits = pred_logits[i, :, :-1].clone()
+        #   query_logits[:, ~center_mask] = -float('inf')
+        #   query_logits = torch.cat([query_logits, pred_logits[i, :, -1:]], dim=-1)
+        #   query_num = nq
+        #   pred_indices = query_logits.argmax(-1)
+        # else:
+        #   query_logits = pred_logits[i].clone()
+        #   query_logits[:, ~center_mask] = -float('inf')
+        #   query_num = np.sum(agent_mask)
+        #   pred_indices = query_logits.argmax(-1)[agent_mask]
 
-        vec = center[vec_idx]
-        agent_num = vec.shape[0]
+        # pred_scores = query_logits.softmax(-1)[torch.arange(query_num), pred_indices]
+
+        # if self.use_background:
+        #   bg_mask = pred_indices == bg_class_ind
+        #   query_idx = torch.arange(query_num)[~bg_mask]
+        #   vec_idx = pred_indices[~bg_mask]
+        #   all_vec_scores = pred_scores[~bg_mask]
+        
+        #   # remove query idx with the same vec idx according to prediction score
+        #   unique_vec_idx = torch.unique(vec_idx)
+        #   unique_query_idx = []
+        #   for vec in unique_vec_idx:
+        #     vec_queries = query_idx[vec_idx == vec]
+        #     vec_scores = all_vec_scores[vec_idx == vec]
+        #     unique_query_idx.append(vec_queries[vec_scores.argmax()].item())
+        #   query_idx = torch.tensor(unique_query_idx)
+        #   vec_idx = unique_vec_idx
+        
+        # else:
+        #   query_idx = torch.arange(query_num)
+        #   vec_idx = pred_indices
+        #   all_vec_scores = pred_scores
+
+        vec = center #[vec_idx]
+        agent_num = sum(agent_mask) #vec.shape[0]
 
         if agent_num == 0:
           output['agent'] = []
@@ -167,6 +173,7 @@ class PostProcess(nn.Module):
           outputs.append(output)
           continue
         
+        with_attribute = False
         if not with_attribute:
           pos = torch.zeros((agent_num, 2), dtype=torch.float32)
           speed = torch.zeros((agent_num), dtype=torch.float32)
@@ -186,6 +193,7 @@ class PostProcess(nn.Module):
             pos = preds['pred_pos'].sample()[i, query_idx].cpu()
             heading = torch.clip(preds['pred_heading'].sample()[i, query_idx].cpu(), min=-np.pi / 2, max=np.pi / 2)
             bbox = torch.clip(preds['pred_bbox'].sample()[i, query_idx].cpu(), min=0.1)
+        
         all_agents = get_agent_pos_from_vec(vec, pos, speed, vel_heading, heading, bbox, self.use_rel_heading)
         agent_list = all_agents.get_list()
 
@@ -208,26 +216,26 @@ class PostProcess(nn.Module):
           query_idx = torch.stack([query_idx[j] for j in non_collide])
           vec_idx = torch.stack([vec_idx[j] for j in non_collide])
 
-        # get prob for each existing query
-        probs = []
-        for q_idx in query_idx:
-          if self.use_background:
-            prob = pred_logits[i, q_idx, :-1][center_mask].softmax(-1)
-          else:
-            prob = pred_logits[i, q_idx][center_mask].softmax(-1)
-          probs.append(prob)
+        # # get prob for each existing query
+        # probs = []
+        # for q_idx in query_idx:
+        #   if self.use_background:
+        #     prob = pred_logits[i, q_idx, :-1][center_mask].softmax(-1)
+        #   else:
+        #     prob = pred_logits[i, q_idx][center_mask].softmax(-1)
+        #   probs.append(prob)
 
         output['agent'] = agent_list
         output['agent_vec_index'] = vec_idx.long()
         
         output['agent_mask'] = torch.ones(len(output['agent']), dtype=torch.bool)
-        output['probs'] = probs
+        # output['probs'] = probs
         output['type_traj'] = preds['type_traj']
         
-        if self.use_background:
-          output['pred_logits'] = pred_logits[i, :, :-1].clone()
-        else:
-          output['pred_logits'] = pred_logits[i, :].clone()
+        # if self.use_background:
+        #   output['pred_logits'] = pred_logits[i, :, :-1].clone()
+        # else:
+        #   output['pred_logits'] = pred_logits[i, :].clone()
 
         if pred_motion:
           motion = preds['pred_motion'][i, query_idx].cpu().numpy()
@@ -240,6 +248,8 @@ class PostProcess(nn.Module):
           else:
             motion_prob = None
           heading = np.concatenate([agent.heading for agent in agent_list])
+
+          # motion: num_veh, 6, 49, 2
           output['traj'], output['rel_traj'] = self._convert_motion_pred_to_traj(output, motion, motion_prob, heading, type_traj)
           # TODO: add postprocessing for future heading and velocity
           exceed_bound = self._exceed_boundary(bound_i, center_i, output['traj'])
@@ -258,4 +268,6 @@ class PostProcess(nn.Module):
             output['traj'] = np.concatenate([data['traj'][i][:, [0]].cpu().numpy(), output['traj']], axis=1)
         
         outputs.append(output)
+        # outputs['reg_result'] = preds['reg_result']
+        # outputs['cls_result'] = preds['cls_result']
       return outputs

@@ -1,0 +1,18 @@
+Query: Generate a map with four-lane two-way road. 
+Output:
+Summary: Guidance requires the generation of a map with four-lane two-way road. 
+Explanation: Since this is a four-lane two-way road, there should be two lanes on either direction. There is no intersection in the scenario, so there should be no lanes on perpendicular directions, and we let the distance to intersection to be -1. 
+Mapping Vector: 
+
+- 'Map': [2,2,0,0,-1]
+
+Query: Generate a scenario with an intersection and six-lane two-way road.
+Output:
+Summary: Guidance requires the generation of a scenario with an intersection and six-lane two-way road.
+Explanation: Since this is a six-lane two-way road, there should be three lanes on either direction. Since the requirement is to generate a scene containing an intersection, there are vertically orientated lanes. We assume that there are two lanes in each direction, and the distance of ego car from the intersection is 3
+Mapping Vector: 
+
+- 'Map': [3,3,2,2,3]
+
+Query: INSERT_QUERY_HERE
+Output:

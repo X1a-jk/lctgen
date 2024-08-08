@@ -11,8 +11,7 @@ from lctgen.core.registry import registry
 
 from .description import descriptions
 from .description import NeighborCarsDescription
-from lctgen.models.neighbor_fuse import kmeans_fuse
-from lctgen.models.neighbor_fuse import binary_fuse, star_fuse, get_type_interactions
+from lctgen.models.neighbor_fuse import get_type_interactions
 
 @registry.register_dataset(name='WaymoOpenMotion')
 class WaymoOpenMotionDataset(Dataset):
@@ -27,9 +26,6 @@ class WaymoOpenMotionDataset(Dataset):
         self.MAX_AGENT_NUM = data_cfg.MAX_AGENT_NUM
         self.THRES = data_cfg.THRES
         self.mode = mode
-        self.mt = data_cfg.MAX_TIME
-        self.k = data_cfg.CLUSTER_NUM
-        self.kd = data_cfg.CLUSTER_DIM
 
         with open(self.data_list_file, 'r') as f:
             self.data_list = f.readlines()
@@ -85,17 +81,8 @@ class WaymoOpenMotionDataset(Dataset):
         data['nei_pos_i'] = txt_result['nei_pos_i']
         data['nei_pos_f'] = txt_result['nei_pos_f']
         data['type_pos'] = data['text'][:, 0]
-        cluster_input = kmeans_fuse(data, self.k, self.mt, self.MAX_AGENT_NUM, self.kd)
-        data['cluster_info'] = cluster_input
-        binary_input, binary_mask = binary_fuse(data, self.MAX_AGENT_NUM, dimension=6)
-        data['binary_info'] = binary_input
-        data['binary_mask'] = binary_mask
-        star_input, star_mask = star_fuse(data, self.MAX_AGENT_NUM, dimension=11)
-        data['star_info'] = star_input
-        data['star_mask'] = star_mask
         inter_type = get_type_interactions(data, self.MAX_AGENT_NUM)
         data['inter_type'] = inter_type
-
         return data, txt_result
 
     def _get_text(self, data):
@@ -119,23 +106,67 @@ class WaymoOpenMotionDataset(Dataset):
         return result
 
     def _get_item_helper(self, index):
-        file = self.data_list[index].strip()
+        cached = True
+        if not cached:
+            file = self.data_list[index].strip()
 
-        if len(file.split(' ')) > 1:
-            file, num = file.split(' ')
-            index = int(num)
+            if len(file.split(' ')) > 1:
+                file, num = file.split(' ')
+                index = int(num)
+            else:
+                index = -1
+
+            data_file_path = os.path.join(self.data_path, file).strip()
+            with open(data_file_path, 'rb') as f:
+                datas = pickle.load(f)
+            data = self._process(datas, index)
+        
+            data['file'] = file
+            data['index'] = index
+
+
+            root_path = "/home/ubuntu/DATA1/waymo_processed/"
+
+            if self.mode == 'train':
+                path = root_path + "train/"
+            else:
+                path = root_path + "eval/"
+
+            file_path = path + str(data['file'])
+            '''
+            with open(file_path, 'wb') as f:
+                pickle.dump(data, f)
+                f.close()
+            '''
+            data, txt_result = self._add_text_attr(data)
+      
+
         else:
-            index = -1
+            root_path = "/home/ubuntu/DATA1/waymo_processed/"
+            
+            if self.mode == 'train':
+                path = root_path + "train/"
+            else:
+                path = root_path + "eval/"
+            
+            # path = root_path
+            file = self.data_list[index].strip()
 
-        data_file_path = os.path.join(self.data_path, file).strip()
-        with open(data_file_path, 'rb') as f:
-            datas = pickle.load(f)
-        data = self._process(datas, index)
-        
-        data['file'] = file
-        data['index'] = index
-        
-        data, txt_result = self._add_text_attr(data)
+            if len(file.split(' ')) > 1:
+                file, num = file.split(' ')
+                index = int(num)
+            else:
+                index = -1
+
+            # data_file_path = os.path.join(self.data_path, file).strip()
+
+            file_path = path + str(file)
+
+            with open(file_path, 'rb') as f:
+                data = pickle.load(f)
+                f.close()
+            data, txt_result = self._add_text_attr(data)
+
         return data
 
     def _process_agent(self, agent, sort_agent):
@@ -295,7 +326,6 @@ class WaymoOpenMotionDataset(Dataset):
             traj = traj
         elif self.data_cfg.TRAJ_TYPE == 'xy_theta_relative':
             # rotate traj of each actor to the direction of the vehicle
-
             traj = traj - traj[[0], :]
             init_heading = case_info['gt_agent_heading'][0]
             traj = rotate(traj[..., 0], traj[..., 1], -init_heading)
@@ -337,7 +367,7 @@ class WaymoOpenMotionDataset(Dataset):
         case_info['gt_pos'] = pos
         case_info['gt_bbox'] = gt_bbox
         case_info['gt_distribution'] = gt_distribution
-        case_info['gt_long_lat'] = gt_vec_based_coord[..., :2]      
+        case_info['gt_long_lat'] = gt_vec_based_coord[..., :2]
         case_info['gt_speed'] = gt_vec_based_coord[..., 2]
         case_info['gt_vel_heading'] = gt_vec_based_coord[..., 3]
         case_info['gt_heading'] = gt_vec_based_coord[..., 4]
@@ -353,10 +383,9 @@ class WaymoOpenMotionDataset(Dataset):
 
         agent = copy.deepcopy(data['all_agent'])
         other['traf'] = copy.deepcopy(data['traffic_light'])
-        
         max_time_step = self.data_cfg.MAX_TIME_STEP
         gap = self.data_cfg.TIME_SAMPLE_GAP
-
+        
         if index == -1:
             data['all_agent'] = data['all_agent'][0:max_time_step:gap]
             data['traffic_light'] = data['traffic_light'][0:max_time_step:gap]
@@ -365,8 +394,7 @@ class WaymoOpenMotionDataset(Dataset):
             data['all_agent'] = data['all_agent'][index:index+self.data_cfg.MAX_TIME_STEP:gap]
             data['traffic_light'] = data['traffic_light'][index:index+self.data_cfg.MAX_TIME_STEP:gap]
 
-        
-        data['lane'], other['unsampled_lane'] = self._transform_coordinate_map(data) # 50*a*4, b*4
+        data['lane'], other['unsampled_lane'] = self._transform_coordinate_map(data)
         other['lane'] = data['lane']
 
         # transform agent coordinate
@@ -385,11 +413,10 @@ class WaymoOpenMotionDataset(Dataset):
         agent = WaymoAgent(agent)
         other['gt_agent'] = agent.get_inp(act=True)
         other['gt_agent_mask'] = mask
-        # other['center_info'] = data['center_info']
+        other['center_info'] = data['center_info']
 
         # _process agent and lane data
         case_info["agent"], case_info["agent_mask"] = self._process_agent(data['all_agent'], False)
-    
         case_info['center'], case_info['center_mask'], case_info['center_id'], case_info['bound'], case_info['bound_mask'], \
         case_info['cross'], case_info['cross_mask'], case_info['rest'], case_info['rest_mask'] = process_map(
             data['lane'], data['traffic_light'], lane_range=self.RANGE, offest=0)

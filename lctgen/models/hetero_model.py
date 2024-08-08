@@ -13,6 +13,15 @@ import dgl.function as fn
 import pandas as pd
 import json
 from openhgnn.models.SimpleHGN import SimpleHGN
+import os
+import sys
+sys.path.append("/home/ubuntu/xiajunkai/HDGT/training/")
+# from model_old import HDGT_model#_new
+import importlib
+model_module = importlib.import_module("model_old")
+
+
+import pickle
 
 copy_func = copy.deepcopy
 
@@ -22,7 +31,7 @@ class HeteroQuery(nn.Module):
 
         self.use_attr_gmm = cfg.MODEL.SCENE.INIT_CFG.DECODER.ATTR_GMM_ENABLE
         self.attr_gmm_k = cfg.MODEL.SCENE.INIT_CFG.DECODER.ATTR_GMM_K
-        self.use_background = cfg.LOSS.DETR.PRED_BACKGROUND
+        self.use_background = False #cfg.LOSS.DETR.PRED_BACKGROUND
         self.model_cfg = cfg.MODEL.SCENE.INIT_CFG
 
         self.full_cfg = cfg
@@ -30,10 +39,8 @@ class HeteroQuery(nn.Module):
         self.motion_cfg = cfg.MODEL.MOTION
         self.hete_cfg = cfg.MODEL.HETERO_CFG
 
-        self._init_encoder()
+        # self._init_encoder()
         self._init_decoder()
-        # self.set_graph()
-        self.gnn = self.set_graph()
 
     def _init_encoder(self):
         self.CG_line = CG_stacked(5, self.hidden_dim)
@@ -44,17 +51,29 @@ class HeteroQuery(nn.Module):
     def _init_decoder(self):
         mlp_dim = self.full_cfg.MODEL.SCENE.INIT_CFG.DECODER.MLP_DIM
 
+        self.hdgt_cfg = self.full_cfg.MODEL.HDGT_CFG
+
+        self.hdgt_model = model_module.HDGT_model(input_dim = 11, args = self.hdgt_cfg)
+        self.hdgt_model.apply(model_module.weights_init)
+
         dcfg = self.model_cfg.DECODER
         self.dtype = dcfg.TYPE
         d_model = self.model_cfg.hidden_dim * 2
 
+        # 6/5
+        '''
         layer_cfg = {'d_model': d_model, 'nhead': dcfg.NHEAD, 'dim_feedforward': dcfg.FF_DIM, 'dropout': dcfg.DROPOUT, 'activation': dcfg.ACTIVATION, 'batch_first': True}
         decoder_layer = nn.TransformerDecoderLayer(**layer_cfg)
         self.decoder = nn.TransformerDecoder(decoder_layer, num_layers=dcfg.NLAYER)
+        '''
 
+        # 6/5
+        ''' 
         self.actor_query = nn.Parameter(torch.randn(1, dcfg.QUERY_NUM, d_model))
+        '''
         # self.event_query = nn.Parameter(torch.randn(1, dcfg.QUERY_NUM, d_model))
 
+        '''
         self.speed_head = MLP([d_model, dcfg.MLP_DIM, 1])
         self.vel_heading_head = MLP([d_model, dcfg.MLP_DIM, 1])
 
@@ -72,20 +91,23 @@ class HeteroQuery(nn.Module):
 
         if self.motion_cfg.ENABLE:
             self._init_motion_decoder(d_model, dcfg)
-
+        '''
         # self.gnn = SimpleHGN
 
-
+        # 6/5
+        '''
         query_dim = self.model_cfg.ATTR_QUERY.POS_ENCODING_DIM
         self.query_embedding_layer = nn.Sequential(
             nn.Linear(query_dim, d_model),
             nn.ReLU(),
             nn.Linear(d_model, d_model),
         )
+        '''
 
+        '''
         self.query_mask_head = MLP([d_model, mlp_dim*2, mlp_dim])
         self.memory_mask_head = MLP([d_model, mlp_dim*2, mlp_dim])
-
+        '''
         
         #neighbor
         self.head = 8
@@ -167,16 +189,37 @@ class HeteroQuery(nn.Module):
         b = agent_feat.shape[0]
         pred_len = self.motion_cfg.STEP
 
+        '''
         motion_prob = self.motion_prob_head(agent_feat)
         result['motion_prob'] = motion_prob
+        '''
 
-        motion_pred = self.motion_head(agent_feat).view(b, -1, self.m_K, pred_len, 2)
-        
-        if self.motion_cfg.CUMSUM:
-            motion_pred = motion_pred.cumsum(dim=-2)
-        
-        result['pred_motion'] = motion_pred
+        pred_motions = []
 
+        for _ in range(3):
+            motion_temp = []
+            max_indices = torch.argmax(result['cls_result'][_], dim=-1).reshape(-1, 1)
+            idx_motion = torch.zeros_like(result['cls_result'][_])
+            idx_motion = idx_motion.scatter_(-1, max_indices, 1).bool()
+
+            _motion = result['reg_result'][_][idx_motion].view(-1, 6, pred_len+1, 2)
+            print(f"{_motion.shape=}")
+            pred_motions.append(_motion)
+
+        
+
+        #motion_pred = self.motion_head(agent_feat).view(b, -1, self.m_K, pred_len, 2)
+
+
+        # if self.motion_cfg.CUMSUM:
+        #     # motion_pred = motion_pred.cumsum(dim=-2)
+        # _motion = _motion.cumsum(dim=-2)
+
+        # result['pred_motion'] = motion_pred
+
+        result['rel_traj'] = _motion
+
+        '''
         if self.motion_cfg.PRED_HEADING_VEL:
             future_heading_pred = self.angle_head(agent_feat).view(b, -1, self.m_K, pred_len, 1)
             future_vel_pred = self.vel_head(agent_feat).view(b, -1, self.m_K, pred_len, 2)
@@ -185,6 +228,7 @@ class HeteroQuery(nn.Module):
             
             result['pred_future_heading'] = future_heading_pred
             result['pred_future_vel'] = future_vel_pred
+        '''
 
     def _output_to_dist(self, para, n):
         if n == 2:
@@ -247,19 +291,32 @@ class HeteroQuery(nn.Module):
     
 
     def forward(self, data):
-
+        init_time = time.time()
         attr_cfg = self.model_cfg.ATTR_QUERY
         pos_enc_dim = attr_cfg.POS_ENCODING_DIM
         type_traj = data['traj_type']
         veh_type = data['veh_type'].to(int)
-        # Map Encoder
-        b = data['lane_inp'].shape[0]
-        device = data['lane_inp'].device
-        line_enc = self._map_lane_encode(data['lane_inp'].float())
-        empty_context = torch.ones([b, line_enc.shape[-1]]).to(device)
-        line_enc, _ = self._map_feature_extract(line_enc, data['lane_mask'], empty_context)
-        line_enc = line_enc[:, :data['center_mask'].shape[1]]
 
+        hdgt_input = data["hdgt_input"]
+
+        device = data['lane_inp'].device
+        gpu = device.index
+
+        hdgt_input["gpu"] = gpu
+
+
+        agent_feat, agent_reg_res, agent_cls_res, target_agent_indice_bool_type_lis, agent_id  = self.hdgt_model(hdgt_input)
+       
+        
+        # Map Encoder
+        # b = data['lane_inp'].shape[0]
+        # line_enc = self._map_lane_encode(data['lane_inp'].float())
+        # empty_context = torch.ones([b, line_enc.shape[-1]]).to(device)
+        # line_enc, _ = self._map_feature_extract(line_enc, data['lane_mask'], empty_context)
+        # line_enc = line_enc[:, :data['center_mask'].shape[1]]
+
+        # 6/5
+        '''
         # Agent Query
         attr_query_input = data['text']
         attr_dim = attr_query_input.shape[-1]
@@ -276,21 +333,36 @@ class HeteroQuery(nn.Module):
 
         # learnable_event_embedding = self.event_query.repeat(b, 1, 1)
         # use_neighbor_query, nei_query_input = data["nei_text"]
+
         nei_query_input = data["star_info"]
-            # nei_query_encoding = pos2posemb(nei_query_input, feat_dim)
-        # nei_encoding = self.nei_embedding_layer(nei_query_input) #.unsqueeze(0)
         
-        # query_encoding = self.hetero_fuse(query_encoding, nei_query_input, veh_type)
+        nei_query_encoding = pos2posemb(nei_query_input, pos_enc_dim//nei_query_input.shape[-1])
+        # nei_encoding = self.nei_embedding_layer(nei_query_input) #.unsqueeze(0)
+
+        encoding_time = time.time()
+        # print(f"encoding time: {encoding_time - init_time}")
+
+        file_data = data['file']
+        
+        # query_encoding = self.hetero_fuse(query_encoding, nei_query_encoding, veh_type, file_data)
+        fuse_time = time.time()
+        # print(f"fusion time: {fuse_time - encoding_time}")
 
         # Generative Transformer
 
         agent_feat = self.decoder(tgt=query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
         # Position MLP + Map Mask MLP    
+        '''
+
+        '''
+        agent_feat = agent_feat.view((b, -1, agent_feat.shape[1]))
+        # agent_reg_res = agent_reg_res.view((b, -1, agent_reg_res.shape[1], agent_reg_res.shape[2], agent_reg_res.shape[3], agent_reg_res.shape[4]))
+        # agent_cls_res = agent_cls_res.view((b, -1, agent_cls_res.shape[1]))
+
         query_mask = self.query_mask_head(agent_feat)
         memory_mask = self.memory_mask_head(line_enc)
-        
-        
-        pred_logits = torch.einsum('bqk,bmk->bqm', query_mask, memory_mask)
+     
+        pred_logits = torch.einsum('bqk,bmk->bqm', query_mask, memory_mask) # 8, 32, 512 * 8, 384, 512
         
         if self.use_background:
             background_logits = self.background_head(agent_feat)
@@ -299,130 +371,36 @@ class HeteroQuery(nn.Module):
 
         # Attribute MLP
         result = self._output_to_attrs(agent_feat)
+        
+        
         result['pred_logits'] = pred_logits       
+        
+        
         # Motion MLP
         # result['bound'] = data['bound']
+
+        process_time = time.time()
+        # print(f"process time: {process_time-fuse_time}")
+        '''
+
+        result = {}
+        result['reg_result'] = agent_reg_res
+        result['cls_result'] = agent_cls_res
+        result['pred_indice_bool_type_lis'] = target_agent_indice_bool_type_lis
+        result['agent_id'] = agent_id
+
+
         if self.motion_cfg.ENABLE:
             self._motion_predict(result, agent_feat)
             result['type_traj'] = type_traj
-            result['veh_traj'] = veh_type
+            result['veh_type'] = veh_type
+
+        
         
         return result
-    
-    def set_graph(self):
-        args = self.hete_cfg
-        meta_graph = {}
-
-        type_vehicle = {-1: "MASK", 0: "VEHICLE", 1: "TRAFFIC_CONE", 2: "PEDESTRIAN", 3: "CYCLIST", 4: "TRAFFIC_BARRIER"}
-
-        for a in range(-1, 5):
-            for b in range(-1, 5):
-                if (type_vehicle[a], f"{a}{b}", type_vehicle[b]) not in meta_graph.keys():
-                    meta_graph[(type_vehicle[a], f"{a}{b}", type_vehicle[b])] = []
-
-        g = dgl.heterograph(meta_graph)
-        return SimpleHGN.build_model_from_args(self.hete_cfg, g)
 
         
 
 
-    
-    def hetero_fuse(self, features, neighbor_features, node_types):
-        batch_s, num_veh, feature_dim = features.shape
-        f_device = features.device
-        f_dtype = features.dtype
-        # print(f_device)
-        batch_graphs = []
-        
-        for bs in range(batch_s):
-            # feature = features[bs]
-            meta_graph = {}
-            hdict = {}
-            type_vehicle = {-1: "MASK", 0: "VEHICLE", 1: "TRAFFIC_CONE", 2: "PEDESTRIAN", 3: "CYCLIST", 4: "TRAFFIC_BARRIER"}
-
-            idx_each_veh = [0 for i in range(num_veh)]
-            idx_type = [0 for i in range(len(type_vehicle))]
-                        
-            features_each_type = [list() for i in range(len(type_vehicle))]
-            features_edge_type = {}
-            for i in range(-1, 6):
-                for j in range(-1, 6):
-                    features_edge_type[f"{i}{j}"] = []
-
-            for i in range(num_veh):
-                type_temp = int(node_types[bs, i, 0])
-                idx_each_veh[i] = idx_type[type_temp]
-                idx_type[type_temp] += 1
-                features_each_type[type_temp].append(features[bs, i, :])
-
-            for j in range(num_veh):
-                for k in range(j+1, num_veh):
-                    type_j = int(node_types[bs, j, 0])
-                    type_k = int(node_types[bs, k, 0])                    
-                    if (type_vehicle[type_j], f"{type_j}{type_k}", type_vehicle[type_k]) not in meta_graph.keys():
-                        meta_graph[(type_vehicle[type_j], f"{type_j}{type_k}", type_vehicle[type_k])] = []
-                    meta_graph[(type_vehicle[type_j], f"{type_j}{type_k}", type_vehicle[type_k])].append((idx_each_veh[j], idx_each_veh[k]))
-                    
-                    features_edge_type[f"{type_j}{type_k}"].append(neighbor_features[bs, j, k, :])
-                    
-
-            for a in range(-1, 5):
-                for b in range(-1, 5):
-                    if (type_vehicle[a], f"{a}{b}", type_vehicle[b]) not in meta_graph.keys():
-                        meta_graph[(type_vehicle[a], f"{a}{b}", type_vehicle[b])] = []
-
-            g_t = dgl.heterograph(meta_graph, device = f_device)
-
-            for l in range(len(type_vehicle)):
-                if l != len(type_vehicle)-1:    
-                    if len(features_each_type[l]):
-                        ft = torch.vstack(features_each_type[l])
-                        g_t.nodes[type_vehicle[l]].data['h'] = ft.to(f_device)
-                        if type_vehicle[l] not in hdict.keys():
-                            hdict[type_vehicle[l]] = []
-                        hdict[type_vehicle[l]].append(ft.to(f_device))
-                else:
-                    if len(features_each_type[l]):
-                        ft = torch.vstack(features_each_type[l])
-                        g_t.nodes[type_vehicle[-1]].data['h'] = ft.to(f_device)
-                        if type_vehicle[-1] not in hdict.keys():
-                            hdict[type_vehicle[-1]] = []
-                        hdict[type_vehicle[-1]].append(ft.to(f_device))
-
-            
-
-            for m in range(len(type_vehicle)):
-                for n in range(len(type_vehicle)):
-                    if len(features_edge_type[f"{m}{n}"]):
-                        ft = torch.vstack(features_edge_type[f"{m}{n}"])
-                        g_t.edges[f"{m}{n}"].data['h'] = ft.to(f_device)
-            
-        #     batch_graphs.append(g)
-
-        # # print(batch_graphs)
-        # bhg = dgl.batch(batch_graphs)
-        # gnn = 
-            # in_dim, out_dim * num_heads
-            # [args.hidden_dim], 
-            for k, v in hdict.items():
-                hdict[k] = torch.vstack(v)
-       
-
-            feature, graph_batch = self.gnn(g_t, hdict)
-            
-        # graphs = dgl.unbatch(graph_batch)
-
-        # feature = []
-        # for gp in graphs:
-        #     gp = dgl.to_homogeneous(gp, ndata = 'h')
-        #     print(gp.ndata['h'].shape)
-        #     feature.append(gp.ndata['h'])
-
-        # feature = torch.vstack(feature).to(f_device)
-        # print(feature.shape)
-            feature = feature.view((num_veh, feature_dim))
-            features[bs] = feature
-
-        return features
     
     

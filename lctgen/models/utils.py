@@ -80,7 +80,7 @@ def visualize_input_seq(data, agents = None, traj=None, sort_agent=True, clip_si
     for i in range(len(agents)):
       agents[i].length_width = np.clip(agents[i].length_width, [MIN_LENGTH, MIN_WIDTH], [10.0, 5.0])
     
-  return draw_seq(center, agents, traj=traj, other=rest, edge=bound, save_np=True, save=save, path=filename)
+  return draw_seq(0, center, agents, traj=traj, other=rest, edge=bound, save_np=True, save=save, path=filename)
 
 def visualize_query_heatmaps(data, output):
   MAX_QUERY_NUM = 12
@@ -172,7 +172,7 @@ def draw_frame(t, output_scene, pred_agents, data):
   '''  
   frame = Image.fromarray(draw_seq(output_scene['center'], pred_agents[t], traj=output_scene['traj'], other=data['rest'][0], edge=data['bound'][0],save_np=True))
   '''
-  img = draw_seq(output_scene['center'].cpu(), pred_agents[t], traj=output_scene['traj'], \
+  img = draw_seq(t, output_scene['center'].cpu(), pred_agents[t], traj=output_scene['traj'], \
                     other=data['rest'][0].cpu(), edge=data['bound'][0].cpu(),save_np=True)
   #  img = img.numpy()
   frame = Image.fromarray(img)

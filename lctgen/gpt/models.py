@@ -5,6 +5,8 @@ import openai
 
 folder = os.path.dirname(__file__)
 print(folder)
+from mistralai.client import MistralClient
+from mistralai.models.chat_completion import ChatMessage
 
 # org_path = os.path.join(folder, 'api.org')
 # api_path = os.path.join(folder, 'api.key')
@@ -35,22 +37,41 @@ class CodexModel(BasicLLM):
     return extended_prompt
 
   def llm_query(self, extended_prompt):
+
     if self.codex_cfg.MODEL == 'debug':
       resp = self.sys_prompt
     elif self.codex_cfg.MODEL in ("gpt-4", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"):
       responses = openai.chat.completions.create(
+              #model="meta/llama-3.1-70b-instruct",              
               model=self.codex_cfg.MODEL,
               messages=[
                   {"role": "system", "content": self.sys_prompt},
                   {"role": "user", "content": extended_prompt}
               ],
-              temperature=self.codex_cfg.TEMPERATURE,
+              temperature=0, #self.codex_cfg.TEMPERATURE,
               max_tokens=self.codex_cfg.MAX_TOKENS,
               top_p = 1.,
               frequency_penalty=0,
               presence_penalty=0,
               )
       resp = responses.choices[0].message.content
+
+    elif self.codex_cfg.MODEL == 'mistral':
+
+      client = MistralClient(api_key="xNQvWx4vdxZV1gMU1ChDdWYGM5VBbOOs")
+      print("before chat")
+      chat_response = client.chat(
+        model="mistral-large-latest",
+        messages=[
+          ChatMessage(role="system", content=self.sys_prompt),
+          ChatMessage(role="user", content=extended_prompt)
+        ],
+        temperature=0, #self.codex_cfg.TEMPERATURE,
+        max_tokens=self.codex_cfg.MAX_TOKENS,
+        top_p = 1.,
+      )
+      resp = chat_response.choices[0].message.content
+      print(f"{resp=}")
     else:
       response = openai.Completion.create(
           model="code-davinci-002",

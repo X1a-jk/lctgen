@@ -14,10 +14,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-import time
-
-init_time = time.time()
-
 def vis_decode(batch, ae_output):
     img = visualize_output_seq(batch, output=ae_output[0], pool_num=1)
     return img
@@ -77,7 +73,7 @@ def traj2act(dataloader, exp_id):
 
 
 def gen_scenario_from_gpt_text(llm_text, cfg, model, map_vecs, map_ids):
-    time_c = time.time()
+
     # format LLM output to Structured Representation (agent and map vectors)
     MAX_AGENT_NUM = 32
     agent_vector, map_vector, event_vector = output_formating_cot(llm_text)
@@ -95,7 +91,7 @@ def gen_scenario_from_gpt_text(llm_text, cfg, model, map_vecs, map_ids):
     sorted_idx = map_retrival(map_vector, map_vecs)[:1]
     map_id = map_ids[sorted_idx[0]]
 
-    map_id = '6_3921.pkl 10'
+    map_id = '1_1578.pkl 10'
     #load map data
     batch = get_map_data_batch(map_id, cfg)
     type_len = batch['traj_type'].shape[1]
@@ -130,8 +126,7 @@ def gen_scenario_from_gpt_text(llm_text, cfg, model, map_vecs, map_ids):
 
     exceed = True
     i = 0
-    time_a = time.time()
-    while exceed and i<1:
+    while exceed and i<10:
         print(f"repeat times {i}")
         model_output = model.forward(batch, 'val')['text_decode_output']
         output_scene = model.process(model_output, batch, num_limit=1, with_attribute=True, pred_ego=True, pred_motion=True)
@@ -139,10 +134,7 @@ def gen_scenario_from_gpt_text(llm_text, cfg, model, map_vecs, map_ids):
         exceed = output_scene[0]['exceed']
         print(exceed)
         i+=1
-    time_b = time.time()
-    print(f"{time_a-time_c=}")
-    print(f"pure decoding: {time_b-time_a}")
-    print(f"{time_b-time_c=}")
+
     
 
     return vis_decode(batch, output_scene), vis_stat(batch, output_scene)
@@ -169,33 +161,20 @@ openai.base_url = "http://localhost:8000/v1/"
 openai.api_key = ""
 openai.base_url = "https://api.openai-proxy.com/v1/"
 
-
-'''
-openai.api_key = ""
-openai.base_url = "https://integrate.api.nvidia.com/v1/"
-'''
-
-
-#query = "The sedan accelerates, overtaking the slower-moving truck on the right, as it navigates the curvy highway."
-#query = "The school bus initiates a lane change to merge into the line of traffic."
-#query = "The cyclist yields to the cars turning at the intersection"
-query = "Generate a scenario with ten vehicles."
+query = "Eight vehicles were generated, the first turned left, the second went straight, the third turned right, the fourth stopped, the fifth changed lanes to the left, the sixth changed lanes to the right, and overtaking occurred in the seventh and eighth vehicles."
 
 print("query: ")
 print(query)
 
 
-
+'''
 llm_result = llm_model.forward(query)
 '''
-with open('response.txt', 'rb') as f:
+with open('answer.txt', 'rb') as f:
     llm_result = f.read()
 llm_result = llm_result.decode('utf-8')
-'''
 
 
-answer_time = time.time()
-print(f"llm time: {answer_time-init_time}")
 
 
 print('LLM inference result:')
@@ -216,18 +195,10 @@ for example_idx in range(len(dataset.data_list)):
     traj2act(loader, example_idx)
     #break
 '''
-time_1 = time.time()
+
 gif_list, jpg = gen_scenario_from_gpt_text(llm_result, cfg, model, map_vecs, map_ids)
-time_2 = time.time()
 
-print(f"{time_2-time_1=}")
-process_time = time.time()
-print(f"decode time: {process_time-answer_time}")
 print("img_list generated")
-gif_list[0].save("./rebuttal/demo_13.gif", save_all=True, append_images=gif_list[1:])
-jpg.save("./rebuttal/demo_13.jpg", "JPEG")
-
-infer_time = time.time()
-print(f"infer time: {infer_time-process_time}")
-print(f"total time: {infer_time-init_time}")
+gif_list[0].save("./usrstudy/demo_-3.gif", save_all=True, append_images=gif_list[1:])
+jpg.save("./usrstudy/demo_-3.jpg", "JPEG")
 

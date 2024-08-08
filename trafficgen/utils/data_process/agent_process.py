@@ -141,7 +141,7 @@ class WaymoAgent:
         return rect_list
 
     def get_polygon(self):
-        rect_list = self.get_rect(pad = 0.25)
+        rect_list = self.get_rect()
 
         poly_list = []
         for i in range(len(rect_list)):

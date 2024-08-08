@@ -5,6 +5,8 @@ import pickle
 import numpy as np
 from torch.utils.data import Dataset
 
+import dgl
+
 from trafficgen.utils.data_process.agent_process import WaymoAgent
 from trafficgen.utils.utils import process_map, rotate, cal_rel_dir
 from lctgen.core.registry import registry
@@ -32,6 +34,7 @@ from metadrive.scenario.utils import read_dataset_summary, read_scenario_data
 
 from scenarionet.converter.nuplan.type import get_traffic_obj_type, set_light_status
 import time
+import random
 
 @registry.register_dataset(name='Nuplan')
 class NuplanDataset(Dataset):
@@ -43,11 +46,12 @@ class NuplanDataset(Dataset):
         self.data_list_file = os.path.join(data_cfg.DATA_LIST.ROOT, data_cfg.DATA_LIST[mode.upper()])
         self.mode = mode
         if self.mode == 'train':
-            self.data_path = data_cfg.DATA_PATH + 'train/'
+            self.data_path = data_cfg.DATA_PATH + 'processed/pittsburgh/'
         else:
-            self.data_path = data_cfg.DATA_PATH + 'test/'
+            self.data_path = data_cfg.DATA_PATH + 'processed/test_demo/'
 
         self.summary_dict, self.summary_list, self.mapping = read_dataset_summary(self.data_path)
+
         self.RANGE = data_cfg.RANGE
         self.MAX_AGENT_NUM = data_cfg.MAX_AGENT_NUM
         self.THRES = data_cfg.THRES
@@ -55,7 +59,7 @@ class NuplanDataset(Dataset):
         self.k = data_cfg.CLUSTER_NUM
         self.kd = data_cfg.CLUSTER_DIM
 
-        self.data_len = None
+        self.data_len = len(self.summary_list)
         self.data_loaded = {}
         self.text_lib = set()
         self.model_cfg = model_cfg
@@ -65,6 +69,7 @@ class NuplanDataset(Dataset):
         self.use_cache = False #data_cfg.CACHE
         self.enable_out_range_traj = data_cfg.ENABLE_OUT_RANGE_TRAJ
         self._spawned_objects = dict()
+        self.raw_index = 0
 
         if self.use_cache:
             self._load_cache_data()
@@ -75,19 +80,45 @@ class NuplanDataset(Dataset):
     def __getitem__(self, index):
         init_time = time.time()
         # try:
+        # index = self.raw_index
         if self.use_cache:
             data = self._cached_data[index]
             data, _ = self._add_text_attr(data)
         else:
 
-            use_cache = False
+            use_cache = True
             
             data = self._get_item_helper(index, use_cache)
+            # except:
+            #     print(f"{index=}")
+            #     try:
+            #         index_list =  [i for i in range(200)]
+            #         id_temp = random.choice(index_list)
+            #         data = self._get_item_helper(id_temp, use_cache)
+            #     except:
+            #         print(f"{id_temp=}")
+            #         try:
+            #             index_list =  [i for i in range(200, 400)]
+            #             id_temp = random.choice(index_list)
+            #             data = self._get_item_helper(id_temp, use_cache)
+            #         except:
+            #             print(f"{id_temp=}")
+            #             try:
+            #                 index_list =  [i for i in range(400, 600)]
+            #                 id_temp = random.choice(index_list)
+            #                 data = self._get_item_helper(id_temp, use_cache)
+            #             except:
+            #                 index_list =  [i for i in range(600, 700)]
+            #                 id_temp = random.choice(index_list)
+            #                 data = self._get_item_helper(id_temp, use_cache)
+
+
             data, _ = self._add_text_attr(data)
             
 
         get_time = time.time()
         # print(f"get_data_time: {get_time-init_time}")
+        self.raw_index += 1
         return data
 
     def _load_cache_data(self):
@@ -127,6 +158,8 @@ class NuplanDataset(Dataset):
         # data['inter_type'] = inter_type
 
         return data, txt_result
+    
+    
 
     def _get_text(self, data):
         txt_cfg = self.data_cfg.TEXT
@@ -157,6 +190,7 @@ class NuplanDataset(Dataset):
         #     index = -1
         # print(index)
         if not use_cache:
+            
             summary = self.summary_list[index]
             mapping = self.mapping[summary]
             if "boston" in mapping:
@@ -170,24 +204,48 @@ class NuplanDataset(Dataset):
         
             index = -1
             self.file = summary
+
+
             data = self.nuplan_process(datas, index)
+                  
+
+            extra_list = ['label', 'auxiliary_label', \
+                          'label_mask', "other_label_mask", "map_fea", "scene_id", "obejct_id_lis", "other_label"]
 
             data['file'] = summary
             data['index'] = index
-        
+            
+            for extra_item in extra_list:
+                data[extra_item] = datas[extra_item]
+
+            # print(f"{len(data['map_fea'][0]) + len(data['map_fea'][1])=}")
+            # print(f"{data['lane_inp'].shape=}")
+
             data, txt_result = self._add_text_attr(data)
             data = self._add_veh_type(data)
 
+            data["pred_num"] = data["num_veh"]
+
             if self.mode == 'train':
-                root_path = "/home/ubuntu/DATA2/nuplan/processed/train/"
+                root_path = "/home/ubuntu/DATA2/nuplan/processed/pittsburgh_0/"
             else:
-                root_path = "/home/ubuntu/DATA2/nuplan/processed/test/"
+                root_path = "/home/ubuntu/DATA2/nuplan/processed/test_demo_0/"
 
             file_path = root_path + str(data['file'])
 
+            
             with open(file_path, 'wb') as f:
                 pickle.dump(data, f)
                 f.close()
+            
+
+            '''
+            print(f"{data['lane_inp'].shape=}")
+            print(f"{data['lane_mask'].shape=}")
+            '''
+
+            # print(f"{data['label'].shape=}")
+            # print(f"{data['label_mask'].shape=}")
 
             return data
         
@@ -196,9 +254,9 @@ class NuplanDataset(Dataset):
             mapping = self.mapping[summary]
             file_path = summary
             if self.mode == 'train':
-                cached_file_path = "/home/ubuntu/DATA2/nuplan/processed/train/"
+                cached_file_path = "/home/ubuntu/DATA2/nuplan/processed/pittsburgh_0/"
             else:
-                cached_file_path = "/home/ubuntu/DATA2/nuplan/processed/test/"
+                cached_file_path = "/home/ubuntu/DATA2/nuplan/processed/test_demo_0/"
             
             self.cached_data = os.listdir(cached_file_path)
             self.file = summary
@@ -211,17 +269,90 @@ class NuplanDataset(Dataset):
                 data = pickle.load(f)
                 f.close()
             # data, txt_result = self._add_text_attr(data)  
+            # data = self.hdgt_process(data)
+
             data = self._add_veh_type(data)    
+            data = self.wash(data)
+
+            
+
+            # data = self.reconstruct_lane(data)
+
+            # print(f"{len(data['map_fea'][0])=}")
+            # print(f"{len(data['map_fea'][1])=}")
+            # print(f"{data['lane_inp'].shape=}")
+
+            # if not cache_graph:
+            #     data = self.construct_graph(data)
          
             return data
+        
+    def reconstruct_lane(self, data):
+        # lane_inp: 736*6
+        # lane_mask: 736, 
+        center_num = 384
+        edge_num = 736 - 384
+
+        center_len = len(data['map_fea'][0])   # list of dict
+        edge_len = len(data['map_fea'][1])
+
+        map_0 = data['map_fea'][0][:center_num]
+        map_1 = data['map_fea'][1][:edge_num]
+
+        default_0 = {'xyz': np.zeros((data['map_fea'][0][0]['xyz'].shape)), 'speed_limit': 10000, 'type': 0, 'stop': [], 'signal': [], 'yaw': 0, 'prev': [], 'follow': []}
+        default_1 = [7, np.zeros((data['map_fea'][1][0][1].shape))]
+        
+        padding_0 = [default_0 for _ in range(center_num - center_len)]
+        padding_1 = [default_1 for _ in range(edge_num - edge_len)]
+
+        map_0 += padding_0
+        map_1 += padding_1
+
+        data['map_fea'][0] = map_0
+        data['map_fea'][1] = map_1
+
+        return data
+
+        
+
+
+    def wash(self, data):
+        try:
+            data.pop("gt_agent")
+            data.pop("gt_agent_mask")
+            data.pop("all_agent")
+            return data
+        except:
+            return data
     
+    def hdgt_process(self, data):
+        agents = data['agent_feature']
+        b_s, agent_num, agent_dim = agents.shape
+
+        max_agent_num = self.MAX_AGENT_NUM
+
+        agent_ = np.zeros([b_s, max_agent_num, agent_dim])
+        agent_mask_ = np.zeros([b_s, max_agent_num]).astype(bool)
+
+        for i in range(agents.shape[0]):
+            agent_i = agents[i]
+            agent_i = agent_i[:max_agent_num]
+
+            agent_i = np.pad(agent_i, [[0, max_agent_num - agent_i.shape[0]], [0, 0]])
+
+            agent_[i] = agent_i
+
+        data['agent_feature'] = agent_
+        return data
+
+
     def _add_veh_type(self, data):
         valid_info = data['agent'][data['agent_mask'], :]
         
         veh_type = -1 * np.ones((data['agent'].shape[0], 1))
         for i in range(valid_info.shape[0]):
             # {"VEHICLE": 0, "TRAFFIC_CONE": 1, "PEDESTRIAN": 2, "CYCLIST": 3, "TRAFFIC_BARRIER": 4}
-            if valid_info[i, 7] in [0, 1, 2]:
+            if valid_info[i, 7] in [1, 2, 3]:
                 veh_type[i, 0] = valid_info[i, 7]
     
             else:
@@ -232,7 +363,6 @@ class NuplanDataset(Dataset):
        
         data['veh_type'] = veh_type
         data['num_veh'] = valid_info.shape[0]
-
 
         return data
 
@@ -248,21 +378,22 @@ class NuplanDataset(Dataset):
 
         processed_data = copy.deepcopy(data)
 
-        self.map_data = data["map_features"]
+        self.map_data = data["map_fea"]
         self.traffics = data["dynamic_map_states"]
 
         self.tracks = data["tracks"]
         self.id = data["id"]
 
-        ego_car_id = data[SD.METADATA][SD.SDC_ID]
+        # ego_car_id = data[SD.METADATA][SD.SDC_ID]
         
         case_info = {}
         other = {}
 
         max_time_step = self.data_cfg.MAX_TIME_STEP
+ 
         gap = self.data_cfg.TIME_SAMPLE_GAP
 
-        all_agents = self.extract_agents(self.tracks, max_time_step)
+        all_agents, agent_feature, agent_type= self.extract_agents(data, self.tracks, max_time_step)
         
         traffics = self.extract_dynamics(self.traffics)
         
@@ -274,11 +405,11 @@ class NuplanDataset(Dataset):
             processed_data['all_agent'] = all_agents[0:max_time_step:gap]
             processed_data['traffic_light'] = traffics[0:max_time_step:gap]
         else:
+            
             index = min(index, len(all_agents)-1)
-
             processed_data['all_agent'] = all_agents[index:index+self.data_cfg.MAX_TIME_STEP:gap]
             processed_data['traffic_light'] = traffics[index:index+self.data_cfg.MAX_TIME_STEP:gap]     
-        
+            
 
         processed_data["lane"], processed_data["unsampled_lane"] = self.process_map(processed_data)
 
@@ -305,7 +436,9 @@ class NuplanDataset(Dataset):
         other['gt_agent'] = agent.get_inp(act=True)
         other['gt_agent_mask'] = mask
 
-        case_info["agent"], case_info["agent_mask"] = self._process_agent(processed_data['all_agent'], False)       
+        case_info["agent"], case_info["agent_mask"] = self._process_agent(processed_data['all_agent'], False)  
+
+        
         
         case_info['center'], case_info['center_mask'], case_info['center_id'], case_info['bound'], case_info['bound_mask'], \
         case_info['cross'], case_info['cross_mask'], case_info['rest'], case_info['rest_mask'] = process_map(
@@ -313,7 +446,8 @@ class NuplanDataset(Dataset):
 
         # case_info['boundaries'] = processed_data["boundaries"]
 
-        case_info = self._get_vec_based_rep(case_info)
+        case_info, agent_feature, agent_type = self._get_vec_based_rep(case_info, agent_feature, agent_type)
+
         agent = WaymoAgent(case_info['agent'], case_info['vec_based_rep'])
 
         # for idx in range(processed_data['all_agent'].shape[1]):
@@ -323,7 +457,8 @@ class NuplanDataset(Dataset):
 
         case_info['agent_feat'] = agent.get_inp()
         
-        case_info = self._process_map_inp(case_info)
+        
+        case_info, lane_num = self._process_map_inp(case_info)
         case_info = self._get_gt(case_info)
 
         case_num = case_info['agent'].shape[0]
@@ -340,16 +475,19 @@ class NuplanDataset(Dataset):
         for attr in future_attrs:
             case_list[0][attr] = case_info[attr]
         case_list[0]['all_agent_mask'] = case_info['agent_mask']
-
+        case_list[0]['agent_feature'] = agent_feature
+        case_list[0]['agent_type'] = agent_type
+        # case_list[0]['pred_num'] = agent_feature.shape[0]
         # include other info for use in MetaDrive
         if self.data_cfg.INCLUDE_LANE_INFO:
             case_list[0]['lane'] = other['lane']
             case_list[0]['traf'] = data['traffic_light']
             case_list[0]['other'] = other
         
-        case_list[0]['gt_agent'] = other['gt_agent']
-        case_list[0]['gt_agent_mask'] = other['gt_agent_mask']
-        case_list[0]['all_agent'] = raw_agent[mask.astype(bool)]
+        # case_list[0]['gt_agent'] = other['gt_agent']
+        # case_list[0]['gt_agent_mask'] = other['gt_agent_mask']
+        # case_list[0]['all_agent'] = raw_agent[mask.astype(bool)]
+
         return case_list[0]
 
 
@@ -391,7 +529,7 @@ class NuplanDataset(Dataset):
 
         return case_info
 
-    def _get_vec_based_rep(self, case_info):
+    def _get_vec_based_rep(self, case_info, agent_feature, agent_type):
 
         thres = self.THRES
         max_agent_num = self.MAX_AGENT_NUM
@@ -471,10 +609,13 @@ class NuplanDataset(Dataset):
         total_mask[:, 0] = 1
         total_mask = total_mask.astype(bool)
 
-        b_s, agent_num, agent_dim = agent.shape
+        b_s, agent_num, agent_dim = agent.shape # 50 * 16 * dim
 
+        # agent_feature  16 * dim * 10
 
         agent_ = np.zeros([b_s, max_agent_num, agent_dim])
+        agent_fea = np.pad(agent_feature, [[0, max_agent_num-agent_feature.shape[0]], [0, 0], [0, 0]])
+        agent_tp = np.pad(agent_type, [[0, max_agent_num-agent_type.shape[0]]])
         agent_mask_ = np.zeros([b_s, max_agent_num]).astype(bool)
 
         the_vec = np.take_along_axis(vectors, vec_index[..., np.newaxis], 1)
@@ -501,7 +642,7 @@ class NuplanDataset(Dataset):
             info_i = info_i[:max_agent_num]
 
             valid_num = agent_i.shape[0]
-            agent_i = np.pad(agent_i, [[0, max_agent_num - agent_i.shape[0]], [0, 0]])
+            agent_i = np.pad(agent_i, [[0, max_agent_num - agent_i.shape[0]], [0, 0]]) # 7 * 9 -> 32 * 9 
             info_i = np.pad(info_i, [[0, max_agent_num - info_i.shape[0]], [0, 0]])
 
             agent_[i] = agent_i
@@ -513,7 +654,10 @@ class NuplanDataset(Dataset):
         case_info['agent_mask'] = agent_mask_       
         case_info["agent"] = agent_
 
-        return case_info
+        agent_feature = agent_fea
+        agent_type = agent_tp
+
+        return case_info, agent_feature, agent_type
     
     def _process_agent(self, agent, sort_agent):
 
@@ -571,42 +715,42 @@ class NuplanDataset(Dataset):
         return lane, unsampled_lane[0]
     
 
-    def scenario_extract(self, data, index):
-        self.map_data = data["map_features"]
-        self.traffics = data["dynamic_map_states"]
-        self.tracks = data["tracks"]
-        self.id = data["id"]
-  
-        for object_id, data in self.map_data.items():
-            if MetaDriveType.is_lane(data.get("type", False)):
-                if len(data[ScenarioDescription.POLYLINE]) <= 1:
-                    continue
-                lane = ScenarioLane(object_id, self.map_data, True)
-                self.block_network.add_lane(lane)
-            elif MetaDriveType.is_sidewalk(data["type"]):
-                self.sidewalks[object_id] = {
-                    ScenarioDescription.TYPE: MetaDriveType.BOUNDARY_SIDEWALK,
-                    ScenarioDescription.POLYGON: np.asarray(data[ScenarioDescription.POLYGON])[..., :2]
-                }
-            elif MetaDriveType.is_crosswalk(data["type"]):
-                self.crosswalks[object_id] = {
-                    ScenarioDescription.TYPE: MetaDriveType.CROSSWALK,
-                    ScenarioDescription.POLYGON: np.asarray(data[ScenarioDescription.POLYGON])[..., :2]
-                }
-            else:
-                pass
-        
-            
 
-        return True
 
     def process_map(self, datas):   
+        boundary_tp = {0 : "LANE_SURFACE_STREET", 1 : "LANE_SURFACE_UNSTRUCTURE", 2 : 'ROAD_LINE_BROKEN_SINGLE_WHITE', 3: 'ROAD_LINE_SOLID_SINGLE_WHITE'}
+        center_tp = {0: "LANE_SURFACE_STREET", 1: "LANE_SURFACE_UNSTRUCTURE", 2:'ROAD_LINE_BROKEN_SINGLE_WHITE', 3:'ROAD_LINE_SOLID_SINGLE_WHITE'}
+        total_info = {}
+
+         # entry_lanes, exit_lanes
+
+        for idx, info  in enumerate(datas['map_fea'][0]):
+            type_ = center_tp[int(info['type'])]
+            polyline_ = info['xyz'][:, :2]
+            if len(info['prev']):
+                prev = [str(i) for i in info['prev'][0]]
+            else:
+                prev = []
+            if len(info['follow']):
+                follow = [str(i) for i in info['follow'][0]]
+            else:
+                follow = []
+            total_info[str(idx)] = {"type" : type_, "polyline" : polyline_, "entry_lanes": prev, "exit_lanes": follow}
+        
+        for idx, info  in enumerate(datas['map_fea'][1]):
+            type_ = boundary_tp[int(info[0]) - 5]
+            polyline_ = info[1][:, :2]
+            prev = []
+            follow = []
+            total_info[f"boundary_{idx}"] = {"type" : type_, "polyline" : polyline_, "entry_lanes": prev, "exit_lanes": follow}
+
+        datas['map_fea_new'] = total_info
         
         global SAMPLE_NUM
         SAMPLE_NUM = 10
-        lane_info = self.extract_map(datas["map_features"])
+        lane_info = self.extract_map(datas["map_feature"])
         SAMPLE_NUM = 10e9
-        unsampled_lane_info = self.extract_map(datas["map_features"])
+        unsampled_lane_info = self.extract_map(datas["map_feature"])
         return lane_info, unsampled_lane_info
 
 
@@ -618,6 +762,8 @@ class NuplanDataset(Dataset):
         # nearbys = dict()
         for k, v in f.items():
             id = k
+
+
             if MetaDriveType.is_lane(v.get("type", None)):            
                 line, center_info = self.extract_center(v)
                 center_infos[id] = center_info
@@ -631,7 +777,7 @@ class NuplanDataset(Dataset):
                 line = self.extract_crosswalk(v)
         
             else:
-                print(v.get("type", None))
+                print(f'{v.get("type", None)=}')
                 continue
 
             try:
@@ -656,8 +802,11 @@ class NuplanDataset(Dataset):
     def extract_boundaries(self, f):
         line_type2int = {"LANE_SURFACE_STREET": 0, "LANE_SURFACE_UNSTRUCTURE": 1, 'ROAD_LINE_BROKEN_SINGLE_WHITE': 2, 'ROAD_LINE_SOLID_SINGLE_WHITE': 3}
         poly = self.down_sampling(self.extract_poly(f['polyline'])[:, :2], 1)
-        type = line_type2int[f['type']] + 5
-        poly = [np.insert(x, 2, type) for x in poly]
+        if type(f['type']) is str:
+            tp = line_type2int[f['type']] + 5
+        else:
+            tp = f['type'] + 5
+        poly = [np.insert(x, 2, tp) for x in poly]
 
         return poly
 
@@ -732,8 +881,8 @@ class NuplanDataset(Dataset):
 
         return poly, center
 
-    def extract_agents(self, tracks, max_time_step):
-        type_vehicle = {"VEHICLE": 0, "TRAFFIC_CONE": 3, "PEDESTRIAN": 1, "CYCLIST": 2, "TRAFFIC_BARRIER": 4}
+    def extract_agents(self, data, tracks, max_time_step):
+        type_vehicle = {"VEHICLE": 1, "TRAFFIC_CONE": 4, "PEDESTRIAN": 2, "CYCLIST": 3, "TRAFFIC_BARRIER": 5}
 
         extension_rate = 0.5
 
@@ -743,11 +892,12 @@ class NuplanDataset(Dataset):
         all_tracks = np.zeros((num_agents, time_steps, 9))
 
         all_tracks[0, :, :2] = ego_track["state"]["position"][:time_steps, :2]
+        
         all_tracks[0, :, 2:4] = ego_track["state"]["velocity"][:time_steps, :]
         all_tracks[0, :, 4] = ego_track["state"]["heading"][:time_steps]
         all_tracks[0, :, 5] = ego_track["state"]["length"][:time_steps, 0]
         all_tracks[0, :, 6] = ego_track["state"]["width"][:time_steps, 0]
-        all_tracks[0, :, 7] = type_vehicle[ego_track[SD.TYPE]]
+        all_tracks[0, :, 7] = ego_track[SD.TYPE] # type_vehicle[ego_track[SD.TYPE]]
         all_tracks[0, :, 8] = ego_track["state"]["valid"][:time_steps]
 
         idx = 0
@@ -759,41 +909,40 @@ class NuplanDataset(Dataset):
             if id == "ego":
                 continue
             all_tracks[idx+1, :, :2] = track["state"]["position"][:time_steps, :2]
+            
             all_tracks[idx+1, :, 2:4] = track["state"]["velocity"][:time_steps, :]
             all_tracks[idx+1, :, 4] = track["state"]["heading"][:time_steps]
             all_tracks[idx+1, :, 5] = track["state"]["length"][:time_steps, 0]
             all_tracks[idx+1, :, 6] = track["state"]["width"][:time_steps, 0]
-            all_tracks[idx+1, :, 7] = type_vehicle[track[SD.TYPE]]
+            all_tracks[idx+1, :, 7] = track[SD.TYPE] #type_vehicle[track[SD.TYPE]]
             all_tracks[idx+1, :, 8] = track["state"]["valid"][:time_steps]
             idx += 1
 
 
-            if track[SD.TYPE] in ["TRAFFIC_CONE", "TRAFFIC_BARRIER"]:
+            if not track[SD.TYPE] in [1, 2, 3]:
                 rows_to_del.append(idx)
 
-            # if all_tracks[idx, -1, 0] < 0.5 and all_tracks[idx, -1, 1] < 0.5:
-            #     # print(all_tracks[idx, :, :2])
-            #     rows_to_del.append(idx)
+            if all_tracks[idx, 0, 0] < 0.5 and all_tracks[idx, 0, 1] < 0.5:
+                # print(all_tracks[idx, :, :2])
+                rows_to_del.append(idx)
             
-            elif track[SD.TYPE] in ["PEDESTRIAN", "CYCLIST"]:
-                if all_tracks[idx, -1, 0] < 0.5 and all_tracks[idx, -1, 1] < 0.5:
-                    # print(f"{idx=}")
-                    # print(f"{all_tracks[idx, 0, 0]=}")
-                    # print(f"{all_tracks[idx, 0, 1]=}")
-                    # print(f"{all_tracks[idx, 1, 0]=}")
-                    # print(f"{all_tracks[idx, 1, 1]=}")
-                    # print(f"{all_tracks[idx, -2, 0]=}")
-                    # print(f"{all_tracks[idx, -2, 1]=}")
-                    # print(f"{all_tracks[idx, -1, 0]=}")
-                    # print(f"{all_tracks[idx, -1, 1]=}")
-                    rows_to_del.append(idx)
+            if all_tracks[idx, -1, 0] < 0.5 and all_tracks[idx, -1, 1] < 0.5:
+                # print(all_tracks[idx, :, :2])
+                rows_to_del.append(idx)
             
-                
+            # elif track[SD.TYPE] in ["PEDESTRIAN", "CYCLIST"]:
+            #     if all_tracks[idx, -1, 0] < 0.5 and all_tracks[idx, -1, 1] < 0.5:
+            #         rows_to_del.append(idx)
+            
+        agent_feature = data['agent_feature']
+        agent_type = data['agent_type']
 
-        if len(rows_to_del):       
+        if len(rows_to_del):  
             all_tracks = np.delete(all_tracks, rows_to_del, axis = 0)
-
-        return all_tracks.swapaxes(0, 1)
+            agent_feature = np.delete(data['agent_feature'], rows_to_del, axis = 0)
+            agent_type = np.delete(data['agent_type'], rows_to_del, axis = 0)
+        
+        return all_tracks.swapaxes(0, 1), agent_feature, agent_type
         
 
         # attach_to_world
@@ -905,10 +1054,14 @@ class NuplanDataset(Dataset):
         rest = copy.deepcopy(case_info['rest'])
         rest[..., :4] /= self.RANGE
 
+
         case_info['lane_inp'] = np.concatenate([center, edge, cross, rest], axis=1)
         case_info['lane_mask'] = np.concatenate(
             [case_info['center_mask'], case_info['bound_mask'], case_info['cross_mask'], case_info['rest_mask']],
             axis=1)
-        return case_info
+
+        lane_num = case_info['lane_inp'].shape[0]
+
+        return case_info, lane_num
 
    

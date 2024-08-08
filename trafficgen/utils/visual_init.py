@@ -99,7 +99,7 @@ def draw_seq_map(center,  other=None, heat_map=False, save_np=False, save=False,
 
     return plt
 
-def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=False, save=False, edge=None, path='../vis', abn_idx=None):
+def draw_seq(t, center, agents, traj=None, other=None, heat_map=False, save_np=False, save=False, edge=None, path='../vis', abn_idx=None):
     plt.switch_backend('agg')
     
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -177,10 +177,7 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
     
     for i in range(len(agents)):
         agent_position = agents[i].position[0]
-        '''
-        if abs(agent_position[0]) > 45 or abs(agent_position[1]) > 45:
-            continue
-        '''
+   
         # if i in collide: continue
         if i == 0:
             col = colors[0]
@@ -193,18 +190,23 @@ def draw_seq(center, agents, traj=None, other=None, heat_map=False, save_np=Fals
             for j in range(len_t):
                 x0, y0 = traj_i[j]
                 x1, y1 = traj_i[j + 1]
-
+                '''
+                if j > t:
+                    continue
+                '''
                 if abs(x0) < 100 and abs(y0) < 100 and abs(x1) < 100 and abs(y1) < 100:
-                    ax.plot((x0, x1), (y0, y1), '-', color=col, linewidth=0.5, marker='.', markersize=4)
+                    ax.plot((x0, x1), (y0, y1), '-', color=col, linewidth=4.0, marker='.', markersize=10)
+                
 
         agent = agents[i]
         agent_type = int(agent.type[0][0])
         colors_type = ["black", "red", "yellow"]
         rect = agent.get_rect()[0]
-        rect = plt.Polygon(rect, edgecolor=colors_type[agent_type],
+
+        rect = plt.Polygon(rect, edgecolor=colors_type[agent_type-1],
                            facecolor=col, linewidth=0.5, zorder=10000)
         ax.add_patch(rect)
-
+    
     # ax.set_facecolor('black')
     plt.autoscale()
     plt.xlim([-100, 100])
@@ -230,7 +232,7 @@ def draw_traj(traj, save_np=False, save=False, edge=None, path='../vis', abn_idx
     colors = list(mcolors.TABLEAU_COLORS)
     lane_color = 'black'
     alpha = 0.12
-    linewidth = 1.6
+    linewidth = 2.0
 
     plt.xlim([-100, 100])
     plt.ylim([-100, 100])
@@ -259,7 +261,7 @@ def draw_traj(traj, save_np=False, save=False, edge=None, path='../vis', abn_idx
             x1, y1 = traj_i[j + 1]
 
             if abs(x0) < 80 and abs(y0) < 80 and abs(x1) < 80 and abs(y1) < 80:
-                ax.plot((x0, x1), (y0, y1), '-', color=col, linewidth=1.8, marker='.', markersize=3)
+                ax.plot((x0, x1), (y0, y1), '-', color=col, linewidth=2.0, marker='.', markersize=3)
     # ax.set_facecolor('black')
     # plt.autoscale()
     if save:
@@ -363,7 +365,7 @@ def draw(center, agents, other, heat_map=None, save=False, edge=None, path='../v
         rect = plt.Polygon(rect, edgecolor=lane_color,
                            facecolor=col, linewidth=0.5, zorder=10000)
         if abs(vel[0] + center[0]) < (vis_range - 2) and abs(vel[1] + center[1]) < (vis_range - 2):
-            ax.plot([center[0], vel[0] + center[0]], [center[1], vel[1] + center[1]], '.-', color='lime', linewidth=1,
+            ax.plot([center[0], vel[0] + center[0]], [center[1], vel[1] + center[1]], '.-', color='lime', linewidth=1.2,
                     markersize=2, zorder=10000)
         ax.add_patch(rect)
 

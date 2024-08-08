@@ -3,8 +3,8 @@ SAVE_CHECKPOINT: true
 DATASET:
   CACHE: False
   ENABLE_OUT_RANGE_TRAJ: True
-    #TYPE: WaymoOpenMotion
-  TYPE: Nuplan 
+  TYPE: WaymoOpenMotion
+    # TYPE: Nuplan 
   MAX_TIME_STEP: 50
   TIME_SAMPLE_GAP: 1
   AUGMENTATION:
@@ -45,7 +45,7 @@ EXPERIMENT_DIR: lctgen
 EXPERIMENT_NAME: inference
 
 LOAD_CHECKPOINT_MODEL: true
-LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/5fv1o13a/checkpoints/last.ckpt
+LOAD_CHECKPOINT_PATH: /home/ubuntu/DATA2/nuplan/results/lctgen/train/lctgen_attr_ind_motion/5fv1o13a/checkpoints/last.ckpt
 #LOAD_CHECKPOINT_PATH: checkpoints/example.ckpt
 # LOAD_CHECKPOINT_PATH: results/lctgen/train/lctgen_attr_ind_motion/llmqsx5a/checkpoints/last.ckpt
 LOAD_CHECKPOINT_TRAINER: true

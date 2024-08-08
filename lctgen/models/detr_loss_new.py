@@ -4,6 +4,73 @@ from torch import nn
 import numpy as np
 from .loss import alignment_loss_func
 
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+    def __init__(self):
+        self.reset()
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+
+def euclid(label, pred):
+    return torch.sqrt((label[...,0]-pred[...,0])**2 + (label[...,1]-pred[...,1])**2)
+
+def euclid_np(label, pred):
+    return np.sqrt((label[...,0]-pred[...,0])**2 + (label[...,1]-pred[...,1])**2)
+
+def cal_ADE(label, pred):
+    return euclid_np(label,pred).mean()
+
+def cal_FDE(label, pred):
+    return euclid_np(label[:,-1,:], pred[:,-1,:]).mean()
+
+def cal_ade_fde_mr(labels, preds, masks):
+    if labels.shape[0] == 0:
+        return None, None
+    l2_norm = euclid_np(labels, preds)
+    
+    masks_sum = masks.sum(1)
+    ade_indices = masks_sum != 0
+    ade_cnt = ade_indices.sum()
+    ade = ((l2_norm[ade_indices] * masks[ade_indices]).sum(1)/masks_sum[ade_indices]).mean()
+
+    fde_indices = masks[:, -1] != 0
+    fde_cnt = fde_indices.sum()
+    fde = 0.0
+    mr = 0.0
+    if fde_cnt != 0:
+        fde = l2_norm[fde_indices, -1]
+        mr = (fde > 2.0).mean()
+        fde = fde.mean()
+    return [ade, fde, mr], [ade_cnt, fde_cnt, fde_cnt]
+
+def cal_min6_ade_fde_mr(preds, labels, masks):
+    if labels.shape[0] == 0:
+        return None, None
+    l2_norm = euclid_np(labels[:, np.newaxis, :, :], preds)
+    ## ade6
+    masks_sum = masks.sum(1)
+    ade_indices = masks_sum != 0
+    ade_cnt = ade_indices.sum()
+    ade6 = ((l2_norm[ade_indices] * masks[ade_indices, np.newaxis, :]).sum(-1)/masks_sum[ade_indices][:, np.newaxis]).min(-1).mean()
+    
+    fde_indices = masks[:, -1] != 0
+    fde_cnt = fde_indices.sum()
+    fde6 = 0.0
+    mr6 = 0.0
+    if fde_cnt != 0:
+        fde6 = l2_norm[fde_indices, :, -1].min(-1)
+        mr6 = (fde6 > 2.0).mean()
+        fde6 = fde6.mean()
+    return [ade6, fde6, mr6], [ade_cnt, fde_cnt, fde_cnt]
+
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
     if target.numel() == 0:
@@ -285,9 +352,18 @@ class SetCriterion(nn.Module):
 
         return loss_attr, motion_attr_loss
 
-    def loss_attributes(self, outputs, data, indices, num_boxes, log=True):
+    #def loss_attributes(self, outputs, data, indices, num_boxes, log=True):
+    def loss_attributes(self, outputs, data,  num_boxes, log=True):
         """Attribute loss
         """
+
+
+        length_lis = [30, 50, 80]
+        agent_type_lis = ["VEHICLE", "PEDESTRIAN", "CYCLIST"]
+        metric_type_lis = ["ade", "fde", "mr", "ade6", "fde6", "mr6",]
+    
+        acc_metric_type_lis = ["accs", "acc6s"]
+        
         # attributes = ['speed', 'pos', 'vel_heading', 'bbox', 'heading']
         attributes = []
         targets = data['targets']
@@ -302,104 +378,172 @@ class SetCriterion(nn.Module):
 
         MSE = torch.nn.MSELoss(reduction='mean')
         L1 = torch.nn.L1Loss(reduction='mean')
+        reg_criteria = torch.nn.SmoothL1Loss(reduction="none")
+
+        refine_num = 5
+        num_prediction = 6
         
         losses = {}
         losses['attributes'] = 0
+        num_of_sample = len(data['hdgt_input']["pred_num_lis"])
         
-        attr_weights = self.cfg.LOSS.DETR.ATTR_WEIGHT
-        self.cal_attr = True
+        length_lis = [30, 50, 80]
+        agent_type_lis = ["VEHICLE", "PEDESTRIAN", "CYCLIST"]
+        metric_type_lis = ["ade", "fde", "mr", "ade6", "fde6", "mr6",]
+    
+        acc_metric_type_lis = ["accs", "acc6s"]
+        recorder = {}
+        for agent_type in agent_type_lis:
+            for acc_metric_type in acc_metric_type_lis:
+                recorder[agent_type+"_"+acc_metric_type] = AverageMeter()
+            for length in length_lis:
+                for metric_type in metric_type_lis:
+                    recorder[agent_type+"_"+str(length)+"_"+metric_type] = AverageMeter()
+        recorder["loss"] = AverageMeter()
+        recorder["reg_loss"] = AverageMeter()
+        recorder["cls_loss"] = AverageMeter()
+        losses_recoder, reg_losses_, cls_losses = AverageMeter(), AverageMeter(), AverageMeter()
 
-        for attr in attributes:
+        num_of_sample = len(data['hdgt_input']["pred_num_lis"])
+
+        agent_reg_res = outputs['reg_result']
+        agent_cls_res = outputs['cls_result']
+        pred_indice_bool_type_lis = outputs['pred_indice_bool_type_lis']
+
+
+        reg_labels = [data['hdgt_input']["label_lis"][pred_indice_bool_type_lis[_]] for _ in range(3)]
+
+        auxiliary_labels = [data['hdgt_input']["auxiliary_label_lis"][pred_indice_bool_type_lis[_]] for _ in range(3)]
+        auxiliary_labels_future = [data['hdgt_input']["auxiliary_label_future_lis"][pred_indice_bool_type_lis[_]] for _ in range(3)]
+        label_masks = [data['hdgt_input']["label_mask_lis"][pred_indice_bool_type_lis[_]] for _ in range(3)]
+        
+        agent_closest_index_lis = [[] for _ in range(3)]
+        loss = 0.0
+        reg_loss = 0.0
+        cls_loss = 0.0
+        total_num_of_mask = 0.0
+        total_num_of_agent = 0.0
+
+        for agent_type_index in range(3):
+            if agent_reg_res[agent_type_index].shape[0] == 0:
+                continue
+            num_of_mask_per_agent = label_masks[agent_type_index].sum(dim=-1)
+            mask_sum = num_of_mask_per_agent.sum()
+            if mask_sum != 0:
+                dist_between_pred_label =  reg_criteria(agent_reg_res[agent_type_index], reg_labels[agent_type_index].unsqueeze(1).unsqueeze(1).repeat(1, refine_num+1, num_prediction, 1, 1)).mean(-1) ## N_Agent, N_refine, num_prediction, 80
+                dist_between_pred_label = (dist_between_pred_label * label_masks[agent_type_index].unsqueeze(1).unsqueeze(1)).sum(-1) / (num_of_mask_per_agent.unsqueeze(-1).unsqueeze(-1)+1) ## N_Agent, N_refine, num_prediction
+                agent_closest_index = dist_between_pred_label[:, -1, :].argmin(dim=-1)
+                
+                reg_loss += (dist_between_pred_label[torch.arange(agent_closest_index.shape[0]), :, agent_closest_index]).sum() / (refine_num+1)
+                
+                log_pis = agent_cls_res[agent_type_index]
+                log_pis = log_pis - torch.logsumexp(log_pis, dim=-1, keepdim=True)
+                log_pi = log_pis[torch.arange(agent_closest_index.shape[0]), agent_closest_index].sum()
+                cls_loss +=   (-log_pi)
+                agent_closest_index_lis[agent_type_index] = (agent_closest_index)
+                total_num_of_agent += len(agent_closest_index)
+                total_num_of_mask += mask_sum
+
+        
+        loss += (cls_loss / total_num_of_agent  + reg_loss / total_num_of_mask * 50)
+        reg_loss_cnt = total_num_of_mask
+        cls_loss_cnt = total_num_of_agent
+
+        if loss != 0:
+            recorder["loss"].update(loss.item(), num_of_sample)
+            recorder["cls_loss"].update(cls_loss.item()/cls_loss_cnt, cls_loss_cnt)
+            recorder["reg_loss"].update(reg_loss.item()/reg_loss_cnt * 50, reg_loss_cnt)
             
-            if self.use_attr_gmm and attr in ['pos', 'bbox', 'heading'] and self.cal_attr:
-            # if attr == "pos":
-                B, N = outputs['pred_vel_heading'].shape[:2]
-                D = 1 if attr == 'heading' else 2
-                log_prob_input = torch.zeros(B, N, D).to(outputs['pred_vel_heading'].device)
-                for i in range(B):
-                    for sidx, tidx in zip(indices[i][0], indices[i][1]):
-                        log_prob_input[i, sidx] = targets[i][attr][tidx]
-                neg_log_prob = -outputs[f'pred_{attr}'].log_prob(log_prob_input.squeeze())
-                gmm_losses = []
-                for i in range(B):
-                    for sidx in indices[i][0]:
-                        gmm_losses.append(neg_log_prob[i, sidx])
-                loss_attr = torch.stack(gmm_losses).mean()
-            
-
-            else:
-                # if attr in ['speed', 'bbox', 'heading']:
-                    # continue
-                
-                
-                src_attrs = [outputs[f'pred_{attr}'][i][indices[i][0]] for i in range(len(indices))]
-                # src_attrs = [outputs[f'pred_{attr}'].sample()[i][indices[i][0]] for i in range(len(indices))]
-                pos_attrs = [outputs[f'pred_pos'].sample()[i,indices[i][0]] for i in range(len(indices))]
-                #pos_attrs = [outputs[f'pred_pos'][i,indices[i][0]] for i in range(len(indices))]
-                target_attrs = [targets[i][attr][indices[i][1]] for i in range(len(indices))]
-                gt_type = [traj_type[i][indices[i][0]] for i in range(len(indices))]
-                gt_pos_f = [rel_pos_f[i][indices[i][0]] for i in range(len(indices))]
-                gt_pos_i = [rel_pos_i[i][indices[i][0]] for i in range(len(indices))]
-                
-                if attr == 'motion':
-                    masks = [targets[i]['motion_mask'][indices[i][1]] for i in range(len(indices))]
-                    if self.motion_cfg.PRED_MODE == 'mlp':
-                        src_probs = None
-                    elif self.motion_cfg.PRED_MODE in ['mlp_gmm', 'mtf']:
-                        src_probs = [outputs['motion_prob'][i][indices[i][0]] for i in range(len(indices))]
-                    
-                    motion_attrs = {}
-                    if self.motion_cfg.PRED_HEADING_VEL:
-                        for k in ['vel', 'heading']:
-                            motion_attrs[k] = {}
-                            motion_attrs[k]['src'] = [outputs[f'pred_future_{k}'][i][indices[i][0]] for i in range(len(indices))]
-                            motion_attrs[k]['tgt'] = [targets[i][f'future_{k}'][indices[i][1]] for i in range(len(indices))]
-
-                if len(target_attrs[0].shape) == 1:
-                    target_attrs = [tgt.unsqueeze(1) for tgt in target_attrs]
-
-                if attr in ['vel_heading', 'heading']:
-                    loss_func = L1
-                else:
-                    loss_func = MSE
-
-                if attr == 'motion':
-                    loss_attr, loss_motion = self._compute_motion_loss(src_attrs, src_probs, target_attrs, masks, loss_func, motion_attrs, gt_type, gt_pos_f, gt_pos_i, pos_attrs, gt_type_pos)
-                else:
-                    
-                    loss_attr = [loss_func(src, tgt) if len(tgt) > 0 else [] for src, tgt in zip(src_attrs, target_attrs)]
-
-                loss_attr = [loss for i, loss in enumerate(loss_attr) if num_boxes[i] > 0]
-                
-                if len(loss_attr) == 0:
-                    loss_attr = torch.tensor(0.0).to(outputs['pred_pos'].device)
+            neighbor_size_lis = data['hdgt_input']["pred_num_lis"]
+            cumsum_neighbor_size_lis = np.cumsum(neighbor_size_lis, axis=0).tolist()
+            cumsum_neighbor_size_lis = [0] + cumsum_neighbor_size_lis
+            for agent_type_index in range(3):
+                now_agent_cls_res = agent_cls_res[agent_type_index]
+                if now_agent_cls_res.shape[0] == 0:
                     continue
+                
+                now_agent_reg_res = agent_reg_res[agent_type_index][:, -1, ...].detach().cpu().numpy()
+                now_labels = reg_labels[agent_type_index].detach().cpu().numpy()
+                now_auxiliary_labels = auxiliary_labels[agent_type_index].detach().cpu().numpy()
+                now_auxiliary_labels_future = auxiliary_labels_future[agent_type_index].detach().cpu().numpy()
+                now_label_masks = label_masks[agent_type_index].detach().cpu().numpy()
+                now_agent_closest_index = agent_closest_index_lis[agent_type_index].detach().cpu().numpy()
+                now_cls_sorted_index = now_agent_cls_res.argsort(dim=-1, descending=True).detach().cpu().numpy()
+                now_agent_cls_res = now_agent_cls_res.detach().cpu().numpy()
 
-                loss_attr = torch.stack(loss_attr).mean() 
-            
-            
-            
-            # record the original scale of loss_attr for easy comparison
-            losses[attr] = loss_attr
-            losses['attributes'] += loss_attr * attr_weights[attr]
+                cls_acc = 0.0
+                cls_acc6 = 0.0
+                best_preds = [0] * len(now_labels)
+                best_6preds = [0] * len(now_labels)
+                for item_index in range(len(now_labels)):
+                    if now_agent_closest_index[item_index] == now_cls_sorted_index[item_index][0]:
+                        cls_acc += 1.0
 
-            if attr == 'motion':
-                for motion_attr, motion_loss in loss_motion.items():
-                    motion_loss = [loss for i, loss in enumerate(motion_loss) if num_boxes[i] > 0]
-                    if len(motion_loss) == 0:
-                        motion_loss = torch.tensor(0.0).to(outputs['pred_pos'].device)
-                    else:
-                        mean_value = torch.stack(motion_loss).mean()
-                        losses[motion_attr] = mean_value
+                    if now_agent_closest_index[item_index] in now_cls_sorted_index[item_index][:6].tolist():
+                        cls_acc6 += 1.0
+                    best_preds[item_index] = now_agent_reg_res[item_index, ...][now_cls_sorted_index[item_index][0], :, :]
+                    best_6preds[item_index] = now_agent_reg_res[item_index][now_cls_sorted_index[item_index][:6], :, :]
+                cls_acc /= now_agent_reg_res.shape[0]
+                cls_acc6 /= now_agent_reg_res.shape[0]
+                recorder[agent_type_lis[agent_type_index]+"_"+"accs"].update(cls_acc, now_agent_reg_res.shape[0])
+                recorder[agent_type_lis[agent_type_index]+"_"+"acc6s"].update(cls_acc6, now_agent_reg_res.shape[0])
+                best_preds = np.stack(best_preds, axis=0)
+                best_6preds = np.stack(best_6preds, axis=0)
 
-        '''
-        log_pis = outputs['cls_result']           
-        log_pis = log_pis - torch.logsumexp(log_pis, dim=-1, keepdim=True)
-        log_pi = log_pis.sum()
-        cls_loss = (-log_pi)
+                for length_indices in range(3):
+                    res_lis, res_cnt_lis = cal_ade_fde_mr(best_preds[:, :length_lis[length_indices], :][:, 4::5, :], now_labels[:, :length_lis[length_indices], :][:, 4::5, :], now_label_masks[:, :length_lis[length_indices]][:, 4::5])
+                    if res_lis:
+                        for metric_indices, metric_type in enumerate(["ade", "fde", "mr"]):
+                            if res_cnt_lis[metric_indices] > 0:
+                                recorder[agent_type_lis[agent_type_index]+"_"+str(length_lis[length_indices])+"_"+metric_type].update(res_lis[metric_indices], res_cnt_lis[metric_indices])
+                    
+                    res_lis, res_cnt_lis = cal_min6_ade_fde_mr(best_6preds[:, :, :length_lis[length_indices], :][:, :, 4::5, :], now_labels[:, :length_lis[length_indices], :][:, 4::5, :], now_label_masks[:, :length_lis[length_indices]][:, 4::5])
+                    if res_lis:
+                        for metric_indices, metric_type in enumerate(["ade6", "fde6", "mr6"]):
+                            if res_cnt_lis[metric_indices] > 0:
+                                recorder[agent_type_lis[agent_type_index]+"_"+str(length_lis[length_indices])+"_"+metric_type].update(res_lis[metric_indices], res_cnt_lis[metric_indices])
+        
+        metric_type_lis = ["ade", "fde", "mr", "ade6", "fde6", "mr6",]
 
-        losses['attributes'] += cls_loss * 0.01
-        '''
+        print_dic = {metric_type:0.0 for metric_type in metric_type_lis}
+        sub_print_dic = {}
+        for agent_type in agent_type_lis:
+            for metric_type in metric_type_lis:
+                sub_print_dic[agent_type + "_" + metric_type] = 0
+                for length in length_lis:
+                    sub_print_dic[agent_type + "_" + metric_type] += recorder[agent_type+"_"+str(length)+"_"+metric_type].avg 
+
+        detail_text = ""
+        for agent_type in agent_type_lis:
+            for length in length_lis:
+                for metric_type in metric_type_lis:
+                    print_dic[metric_type] += recorder[agent_type+"_"+str(length)+"_"+metric_type].avg        
+                    detail_text +=  ", "+agent_type+"_"+str(length)+"_" + metric_type + " {:.4f}".format(recorder[agent_type+"_"+str(length)+"_"+metric_type].avg)
+        for agent_type in agent_type_lis:
+            for acc_metric_type in acc_metric_type_lis:
+                detail_text += ", "+agent_type+"_" + acc_metric_type + " "+str(recorder[agent_type+"_"+acc_metric_type].avg)
+        print_dic = {k:v/9.0 for k, v in print_dic.items()}
+        sub_print_dic = {k:v/3.0 for k, v in sub_print_dic.items()}
+
+        print_text = ""
+        print_text += "Loss {:.8f}, ".format(recorder["loss"].avg)
+        print_text += "Cls Loss {:.8f}, ".format(recorder["cls_loss"].avg)
+        print_text += "Reg Loss {:.8f}, ".format(recorder["reg_loss"].avg)
+        for k, v in print_dic.items():
+            print_text += k + " {:.4f}, ".format(v)
+        for k, v in sub_print_dic.items():
+            print_text += k + " {:.4f}, ".format(v)
+
+        print_text += detail_text
+
+        # print(print_text, flush=True)
+
+        # losses = recorder
+
+        losses['attributes'] = loss #.item()
+
+        # print(f"{loss=}")
+        # print(f'{recorder["loss"]=}')
 
         return losses
 
@@ -455,7 +599,8 @@ class SetCriterion(nn.Module):
         tgt_idx = torch.cat([tgt for (_, tgt) in indices])
         return batch_idx, tgt_idx
 
-    def get_loss(self, loss, outputs, data, indices, num_boxes, **kwargs):
+    # def get_loss(self, loss, outputs, data, indices, num_boxes, **kwargs):
+    def get_loss(self, loss, outputs, data, num_boxes, **kwargs):
         loss_map = {
             'labels': self.loss_labels,
             'heatmap': self.loss_heatmap,
@@ -463,7 +608,8 @@ class SetCriterion(nn.Module):
             'vae': self.loss_vae,
         }
         assert loss in loss_map, f'do you really want to compute {loss} loss?'
-        return loss_map[loss](outputs, data, indices, num_boxes, **kwargs)
+        # return loss_map[loss](outputs, data, indices, num_boxes, **kwargs)
+        return loss_map[loss](outputs, data, num_boxes, **kwargs)
 
     def forward(self, outputs, data):
         """ This performs the loss computation.
@@ -482,12 +628,12 @@ class SetCriterion(nn.Module):
         
         for mode in ae_modes:
             mode_output = outputs['{}_decode_output'.format(mode)]
-            indices = self.matcher(mode_output, data['targets'], data['agent_mask'], self.detr_cfg.PRED_BACKGROUND)
+            # indices = self.matcher(mode_output, data['targets'], data['agent_mask'], self.detr_cfg.PRED_BACKGROUND)
 
-            # enforce the sequential matching order between the two sets (disable hungarian matching)
-            if self.cfg.LOSS.DETR.MATCH_METHOD == 'sequential':
-                for i in range(len(indices)):
-                    indices[i] = (indices[i][1], indices[i][1])
+            # # enforce the sequential matching order between the two sets (disable hungarian matching)
+            # if self.cfg.LOSS.DETR.MATCH_METHOD == 'sequential':
+            #     for i in range(len(indices)):
+            #         indices[i] = (indices[i][1], indices[i][1])
 
             # Compute all the requested losses
             mode_losses = {}
@@ -495,7 +641,8 @@ class SetCriterion(nn.Module):
             num_boxes = torch.tensor([len(v['labels']) for v in data['targets']])
             
             for loss in self.losses:
-                mode_losses.update(self.get_loss(loss, mode_output, data, indices, num_boxes))
+                # mode_losses.update(self.get_loss(loss, mode_output, data, indices, num_boxes))
+                mode_losses.update(self.get_loss(loss, mode_output, data, num_boxes))
                 full_loss += self.weight_dict[loss] * mode_losses[loss]
                 for subloss in mode_losses:
 
@@ -508,6 +655,7 @@ class SetCriterion(nn.Module):
             losses['full_loss'] += losses['alignment_loss']
 
         for loss_type, value in losses.items():
+
             if value.isnan().any():
                 print('nan loss in ', loss_type, value)
                 print('nan loss data', data['file'])

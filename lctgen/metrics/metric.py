@@ -264,6 +264,8 @@ class TrajMatch(Metric):
         # remove the first timestep
         real_traj = data['traj'][i][:, data['agent_mask'][i]][:, real_idx][1:].cpu()
         sim_traj = torch.tensor(model_output_scene[i]['rel_traj'][:, sim_idx][1:]).cpu()
+        # print(f"{real_traj.shape=}")
+        # print(f"{sim_traj.shape=}")
 
         real_type = data['traj_type'][i][data['agent_mask'][i]][real_idx].cpu().item()
         # real_type = data['veh_type'][i][data['agent_mask'][i]][real_idx].cpu().item()

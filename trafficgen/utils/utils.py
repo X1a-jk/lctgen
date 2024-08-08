@@ -161,7 +161,7 @@ def get_agent_pos_from_vec(vec, long_lat, speed, vel_heading, heading, bbox, use
     return agent
 
 
-def process_lane(lane, max_vec, lane_range, offset=-40):
+def process_lane(lane, lane_range, max_vec = None, offset=-40):
     # dist = lane[..., 0]**2+lane[..., 1]**2
     # idx = np.argsort(dist)
     # lane = lane[idx]
@@ -202,6 +202,10 @@ def process_lane(lane, max_vec, lane_range, offset=-40):
     vector = np.concatenate(vec_list, axis=1) if vec_list else np.zeros([b_s, 0, vec_dim])
     vector_mask = np.concatenate(vec_mask_list, axis=1) if vec_mask_list else np.zeros([b_s, 0], dtype=bool)
     vec_id = np.concatenate(vec_id_list, axis=1) if vec_id_list else np.zeros([b_s, 0, 1])
+
+    num_vec = vector.shape[0]
+    if max_vec is None:
+        max_vec = num_vec
 
     all_vec = np.zeros([b_s, max_vec, vec_dim])
     all_mask = np.zeros([b_s, max_vec])
@@ -281,10 +285,19 @@ def process_map(lane, traf=None, center_num=384, edge_num=128, lane_range=60, of
 
     rest = ~(center_ind + bound_ind + cross_walk + speed_bump + cross_ind)
 
-    cent, cent_mask, cent_id = process_lane(lane[:, center_ind], center_num, lane_range, offest)
-    bound, bound_mask, _ = process_lane(lane[:, bound_ind], edge_num, lane_range, offest)
-    cross, cross_mask, _ = process_lane(lane[:, cross_ind], 32, lane_range, offest)
-    rest, rest_mask, _ = process_lane(lane[:, rest], rest_num, lane_range, offest)
+    
+    cent, cent_mask, cent_id = process_lane(lane = lane[:, center_ind], max_vec = center_num, lane_range = lane_range, offset = offest)
+    bound, bound_mask, _ = process_lane(lane = lane[:, bound_ind], max_vec = edge_num, lane_range = lane_range, offset = offest)
+    cross, cross_mask, _ = process_lane(lane = lane[:, cross_ind], max_vec = 32, lane_range = lane_range, offset = offest)
+    rest, rest_mask, _ = process_lane(lane = lane[:, rest], max_vec = rest_num, lane_range = lane_range, offset = offest)
+    
+
+    '''
+    cent, cent_mask, cent_id = process_lane(lane = lane[:, center_ind], max_vec = None, lane_range = lane_range, offset = offest)
+    bound, bound_mask, _ = process_lane(lane = lane[:, bound_ind], max_vec = None, lane_range = lane_range, offset = offest)
+    cross, cross_mask, _ = process_lane(lane = lane[:, cross_ind], max_vec = None, lane_range = lane_range, offset = offest)
+    rest, rest_mask, _ = process_lane(lane = lane[:, rest], max_vec = None, lane_range = lane_range, offset = offest)
+    '''
 
     return cent, cent_mask, cent_id, bound, bound_mask, cross, cross_mask, rest, rest_mask
 

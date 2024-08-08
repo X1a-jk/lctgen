@@ -1,13 +1,11 @@
 import copy
-import numpy as np
 import torch
 import torch.nn as nn
 
 from trafficgen.utils.model_utils import CG_stacked
 from .blocks import MLP, pos2posemb, PositionalEncoding
 from .att_fuse import ScaledDotProductAttention, MultiHeadAttention
-from .neighbor_fuse import kmeans_fuse
-import time
+
 copy_func = copy.deepcopy
 
 class DETRAgentQuery(nn.Module):
@@ -63,55 +61,36 @@ class DETRAgentQuery(nn.Module):
         if self.motion_cfg.ENABLE:
             self._init_motion_decoder(d_model, dcfg)
 
-
         query_dim = self.model_cfg.ATTR_QUERY.POS_ENCODING_DIM
         self.query_embedding_layer = nn.Sequential(
             nn.Linear(query_dim, d_model),
             nn.ReLU(),
             nn.Linear(d_model, d_model),
         )
-
+        '''
+        self.agent_type_embedding = nn.Sequential(
+            nn.Linear(query_dim, d_model),
+            nn.ReLU(),
+            nn.Linear(d_model, d_model // 2),
+        )
+        '''
         self.query_mask_head = MLP([d_model, mlp_dim*2, mlp_dim])
         self.memory_mask_head = MLP([d_model, mlp_dim*2, mlp_dim])
 
         
         #neighbor
         self.head = 8
-        '''      
-        self.nei_self_attention = MultiHeadAttention(5, 10)
-        self.agent_self_attention = MultiHeadAttention(3, 9)
-        '''
-
-        
         nei_decoder_layer = nn.TransformerDecoderLayer(**layer_cfg)
         self.nei_decoder =  nn.TransformerDecoder(nei_decoder_layer, num_layers=dcfg.NLAYER)
-        
         nei_dim = 10 # modify here
         self.nei_embedding_layer = nn.Sequential(
             nn.Linear(nei_dim, d_model),
             nn.ReLU(),
             nn.Linear(d_model, d_model),
         )
-        
-        self.cross_attention = MultiHeadAttention(self.head, d_model)#ScaledDotProductAttention(d_model)
+        self.cross_attention = MultiHeadAttention(self.head, d_model) #ScaledDotProductAttention(d_model)
         
         self.neighbor_txt_embedding = PositionalEncoding(d_model)
-        
-        # self.vehicle_type_embedding = nn.Linear(1, self.hidden_dim, dtype=torch.float32)
-
-        '''
-        event_decoder_layer = nn.TransformerDecoderLayer(**layer_cfg)
-        self.event_decoder =  nn.TransformerDecoder(event_decoder_layer, num_layers=dcfg.NLAYER)
-        event_dim = 242 # modify here
-        self.event_embedding_layer = nn.Sequential(
-            nn.Linear(event_dim, d_model),
-            nn.ReLU(),
-            nn.Linear(d_model, d_model)
-        )
-        self.event_attention = MultiHeadAttention(self.head, d_model)#ScaledDotProductAttention(d_model)
-        '''
-
-        # self.event_txt_embedding = PositionalEncoding(d_model)
         
     def _init_motion_decoder(self, d_model, dcfg):
         self.m_K = self.motion_cfg.K
@@ -128,6 +107,7 @@ class DETRAgentQuery(nn.Module):
         polyline = lane_inp[..., :4]
         polyline_type = lane_inp[..., 4].to(int)
         polyline_traf = lane_inp[..., 5].to(int)
+
         polyline_type_embed = self.type_embedding(polyline_type)
         polyline_traf_embed = self.traf_embedding(polyline_traf)
 
@@ -195,10 +175,12 @@ class DETRAgentQuery(nn.Module):
         result['pred_vel_heading'] = self.vel_heading_head(agent_feat)
         
         if not self.use_attr_gmm:
+            print("predicting")
             result['pred_pos'] = self.pos_head(agent_feat)
             result['pred_bbox'] = self.bbox_head(agent_feat)
             result['pred_heading'] = self.heading_head(agent_feat)
         else:
+            
             pos_out = self.pos_head(agent_feat).view([*agent_feat.shape[:-1], self.attr_gmm_k, -1])
             pos_weight_logit = pos_out[..., 0]
             pos_param = pos_out[..., 1:]
@@ -206,6 +188,7 @@ class DETRAgentQuery(nn.Module):
             pos_weight = torch.distributions.Categorical(logits=pos_weight_logit)
             result['pred_pos'] = (torch.distributions.mixture_same_family.MixtureSameFamily(pos_weight, pos_distri))
 
+            
             # bbox distribution： 2 dimension length width
             bbox_out = self.bbox_head(agent_feat).view([*agent_feat.shape[:-1], self.attr_gmm_k, -1])
             bbox_weight_logit = bbox_out[..., 0]
@@ -222,11 +205,11 @@ class DETRAgentQuery(nn.Module):
             heading_distri = self._output_to_dist(heading_param, 1)
             heading_weight = torch.distributions.Categorical(logits=heading_weight_logit)
             result['pred_heading'] = (torch.distributions.mixture_same_family.MixtureSameFamily(heading_weight, heading_distri))
-
+            
+            
         return result
 
     def forward(self, data):
-
         attr_cfg = self.model_cfg.ATTR_QUERY
         pos_enc_dim = attr_cfg.POS_ENCODING_DIM
         type_traj = data['traj_type']
@@ -237,28 +220,27 @@ class DETRAgentQuery(nn.Module):
         empty_context = torch.ones([b, line_enc.shape[-1]]).to(device)
         line_enc, _ = self._map_feature_extract(line_enc, data['lane_mask'], empty_context)
         line_enc = line_enc[:, :data['center_mask'].shape[1]]
-        
 
         # Agent Query
         attr_query_input = data['text']
         attr_dim = attr_query_input.shape[-1]
         attr_query_encoding = pos2posemb(attr_query_input, pos_enc_dim//attr_dim)
+
         attr_query_encoding = self.query_embedding_layer(attr_query_encoding)
+        # agent_type_encoding = self.agent_type_embedding(type_traj)
+
+        # attr_query_encoding = torch.cat([attr_query_encoding, agent_type_encoding], dim=-1)
+
         learnable_query_embedding = self.actor_query.repeat(b, 1, 1)
         query_encoding = learnable_query_embedding + attr_query_encoding
 
-        '''
-        veh_type = data['veh_type'].to(torch.float32)
-        vehicle_type_query = self.vehicle_type_embedding(veh_type)
-        query_encoding = torch.concat((query_encoding, vehicle_type_query), dim = -1)
         # Generative Transformer
-        '''
-        
         agent_feat = self.decoder(tgt=query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
         # Position MLP + Map Mask MLP
         query_mask = self.query_mask_head(agent_feat)
         memory_mask = self.memory_mask_head(line_enc)
-
+        
+        
         use_neighbor_query, nei_query_input = data["nei_text"]
         use_neighbor_feat = True #not (False in use_neighbor_query.cpu().tolist())
         if use_neighbor_feat:
@@ -270,7 +252,8 @@ class DETRAgentQuery(nn.Module):
             nei_feat = self.nei_decoder(tgt=nei_query_encoding, memory=line_enc, tgt_key_padding_mask=~data['agent_mask'], memory_key_padding_mask=~data['center_mask'])
             agent_feat = self.cross_attention(agent_feat, nei_feat, nei_feat)
             # agent_feat = self.cross_attention(nei_feat, agent_feat, agent_feat)
-
+        
+        
 
         pred_logits = torch.einsum('bqk,bmk->bqm', query_mask, memory_mask)
         
@@ -287,7 +270,5 @@ class DETRAgentQuery(nn.Module):
         if self.motion_cfg.ENABLE:
             self._motion_predict(result, agent_feat)
             result['type_traj'] = type_traj
-            #result['veh_type'] = data['veh_type']
-
-        
+            # result['inter_type'] = data['inter_type']
         return result

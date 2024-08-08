@@ -25,7 +25,7 @@ model.eval()
 '''
 dataset_type = cfg.DATASET.TYPE
 cfg.DATASET['CACHE'] = False
-dataset = registry.get_dataset(dataset_type)(cfg, 'test')
+dataset = registry.get_dataset(dataset_type)(cfg, 'train')
 '''
 example_idx = 27 #@param {type:"slider", min:0, max:29, step:1}
 dataset.data_list = [dataset.data_list[example_idx]]
@@ -34,8 +34,8 @@ dataset.data_list = [dataset.data_list[example_idx]]
 print(len(dataset))
 
 collate_fn = fc_collate_fn
-loader = DataLoader(dataset, batch_size=1, shuffle=True, pin_memory = False,
-                drop_last=False, num_workers=10, collate_fn=collate_fn)
+loader = DataLoader(dataset, batch_size=8, shuffle=True, pin_memory = False,
+                drop_last=False, num_workers=4, collate_fn=collate_fn)
 
 def kmeans(data, k, max_time = 10):
     init_pos_batch = []
@@ -114,8 +114,7 @@ for i, batch in enumerate(loader):
     veh_type = data['veh_type'][:, data['agent_mask'][0], :].cpu().tolist()[0]
     #print(data['text'])
     for tp in veh_type:
-        type_lst[int(tp[0])] += 1
-    #print(data['nei_text'])
+        type_lst[int(tp[0]-1)] += 1
     # root_path = "/home/ubuntu/DATA2/nuplan/processed/boston/"
 
     # file_path = root_path + data['file'][0]
@@ -126,7 +125,7 @@ for i, batch in enumerate(loader):
     
     file_id = batch['file'][0].split(".")[1]
     # print(f"{file_id=}")
-    if data["num_veh"].cpu().int().item() >= 8:
+    if data["num_veh"].cpu().int().item() >= 15:
         # print(f'{data["agent_mask"].sum()=}')
         print(f"{file_id=}")
         file_name = "./nuplan_vis/" + file_id+'.png'
@@ -137,8 +136,8 @@ for i, batch in enumerate(loader):
             if idx > 1:
                 print(data['file'].cpu().tolist()[idx])
         '''
-        # break
-        demo_fig = visualize_input_seq(data, save=True, filename=file_name)
+    break
+        # demo_fig = visualize_input_seq(data, save=True, filename=file_name)
     # maps = visualize_map(data, save=True, path=map_name)
     
     if i % 100 == 0:

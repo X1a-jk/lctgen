@@ -1,0 +1,39 @@
+Query: Eight vehicles were generated, the first turned left, the second went straight, the third turned right, the fourth stopped, the fifth changed lanes to the left, the sixth changed lanes to the right, and overtaking occurred in the seventh and eighth vehicles.
+Output:
+Summary: Guidance requires the generation of eight agents, each with clearly defined behaviour. Therefore there is no need to generate and describe the behaviour of agents that are not mentioned in the description.
+Explanation: There are eight agents to be generated in the scenario, all of which are of type vehicle, so the list representing the number of agents should be [8, 0, 0].
+The map needs to contain an intersection as there are cars performing turning behaviours.The descriptions of the scenarios are detailed, with corresponding descriptive instructions for each agent.
+Mapping Type: 
+- 'map type': intersection
+Number of Agents: 
+- 'total number': 8
+Agent descriptions: 
+- 'agent number': [8,0,0]
+- 'Vehicle1': The car is turning left.
+- 'Vehicle2': The car is driving straight forward.
+- 'Vehicle3': The car is making a right turn.
+- 'Vehicle4': The car stops.
+- 'Vehicle5': The car is changing lane to the left.
+- 'Vehicle6': The car is changing lane to the right.
+- 'Vehicle7': The car is driving straight forward.
+- 'Vehicle8': The car is driving straight forward.
+
+Query: Generate five agents, including a right-turning car and a person crossing the street.
+Output:
+Summary: Guidance requires the generation of five agents, only the behaviour of two agents is described, so it is necessary to generate corresponding descriptions for the behaviour and types of three additional agents.
+Explaination: Since the vehicle is making a right turn, there should be an intersection in the scenario. There are five agents to be generated in the scenario, including a vehicle and a pedestrian. In order to balance the number of different types of agents in the scenario, one car, one bicycle and one pedestrian are generated for the remaining three agents.
+The list representing the number of different agents should be therefore [2, 2, 1]. In addition to the mentioned right-turning car and the person walking straight forward, we additionally generate a car going straight, a cyclist moving straight and a pedestrian standing still waiting for a red light.
+Mapping Type: 
+- 'map type': intersection
+Number of Agents: 
+- 'total number': 5
+Agent descriptions: 
+- 'agent number': [2,2,1]
+- 'Vehicle1': The car is turning right.
+- 'Vehicle2': The car is driving straight forward.
+- 'Pedestrian1': The pedestrian is walking straight forward to cross the street.
+- 'Pedestrian2': The pedestrian is standing still and waiting for a red light.
+- 'Bicycle1': The cyclist is moving straight forward.
+
+Query: INSERT_QUERY_HERE
+Output:

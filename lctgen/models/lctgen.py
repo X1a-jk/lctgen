@@ -25,7 +25,7 @@ class LCTGen(BaseModel):
     
     loss_cfg = config.LOSS.DETR
     matcher = HungarianMatcher(cost_class=loss_cfg.MATCH_COST.CLASS)
-    self.criterion = SetCriterion(num_classes=cls_num, matcher=matcher, weight_dict=loss_cfg.WEIGHT, eos_coef=loss_cfg.EOS_COEF, losses=loss_cfg.LOSSES, use_center_mask=loss_cfg.USE_CENTER_MASK, re_weight=loss_cfg.RE_WEIGHT, cfg=config)
+    self.criterion = SetCriterion(num_classes=cls_num, matcher=matcher, weight_dict=loss_cfg.WEIGHT, eos_coef=loss_cfg.EOS_COEF, losses=loss_cfg.LOSSES, use_center_mask=loss_cfg.USE_CENTER_MASK, cfg=config)
     self.with_attribute = 'attributes' in self.config.LOSS.DETR.LOSSES
     self.pred_ego = self.config.MODEL.PREDICT_EGO
     self.pred_motion = self.config.MODEL.MOTION.ENABLE
@@ -131,10 +131,10 @@ class LCTGen(BaseModel):
   def _batch_forward(self, batch, mode, batch_idx):
     result = super()._batch_forward(batch, mode, batch_idx)
     vis_interval = self.config.VIS_INTERVAL
-
+    
     if self.global_rank == 0 and batch_idx % vis_interval == 0 and mode in ['val', 'test']:
       self._visualize(batch, result['model_output'], mode, 'text', batch_idx)
-
+     
     return result
   
   def forward(self, batch, mode):
@@ -143,8 +143,8 @@ class LCTGen(BaseModel):
     
     batch = self._format_target_for_detr(batch)
     result['data'] = batch
-
+    
     if mode in ['val', 'test']:
       result['text_scene_output'] = self.process(result['text_decode_output'], batch, with_attribute=self.with_attribute, pred_ego=self.pred_ego, pred_motion=self.pred_motion)
-
+    
     return result

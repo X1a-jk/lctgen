@@ -1,0 +1,25 @@
+Query: Ego car moves forward, most cars are moving in fast speed
+
+Output:
+Summary: Most vehicles including ego vehicle (V1) moves forward at a high speed(more than 6) in a sparse traffic scenario. Due to the sparse nature of the scenario, there should be few vehicles around the ego vehicle and they should be at larger distances. The ego car is placed on the middle lane.
+Explanation:
+- V1 (ego vehicle) is in the center and moves forward. Because V1 moves fast, its speed is set to 8 (fast speed). During the process, V1 maintains a constant speed in a straight line at all times during the process, so all remaining speed levels are set to 6. Since V1 is driving in the straight lane, its trajectory class is set to 1.
+
+Actor Vector:
+- 'V1': [-1, 0, 0, 8, 8, 8, 8, 8, 8, 1, 0]
+
+Query: The scene is with medium density. There are some cars at the intersection. The ego car is turning left, while some of the cars are turing right.
+
+Output:
+Summary: Since ego car is turning left, the ego car is placed on the left-most lane. Since the scene is with medium density, all the cars are driving at a relative midium speed.
+Explanation:
+- V1 (ego vehicle) is in the center and is making a left turn. Before starting the turn his speed level is set to 5, during the turn he needs to decelerate, at which point the speed level is set to 3. The overall speed trend is expressed as [4, 4, 3, 2, 1] to show the deceleration, and the trajectory type is 2, representing a left-turn.
+
+
+Actor Vector:
+- 'V1': [-1, 0, 0, 5, 4, 4, 3, 2, 1, 2, 0]
+
+
+Query: INSERT_QUERY_HERE
+
+Output:
